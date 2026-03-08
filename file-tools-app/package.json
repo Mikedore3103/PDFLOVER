@@ -1,0 +1,22 @@
+{
+  "name": "file-tools-app",
+  "version": "1.0.0",
+  "description": "Simple file tools web app scaffold",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.8.2",
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.3",
+    "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "pdf-lib": "^1.17.1",
+    "pdf2pic": "^3.2.0",
+    "pdfkit": "^0.17.2"
+  }
+}
