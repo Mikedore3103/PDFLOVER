@@ -131,6 +131,6 @@ module.exports = {
   jpgToPdf,
   mergePdf,
   splitPdf,
-  // compressPdf,
+  compressPdf,
   getJobStatus
 };

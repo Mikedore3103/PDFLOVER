@@ -18,7 +18,7 @@ router.post('/pdf-to-jpg', upload.array('files'), toolMiddleware, toolController
 router.post('/jpg-to-pdf', upload.array('files'), toolMiddleware, toolController.jpgToPdf);
 router.post('/merge-pdf', upload.array('files'), toolMiddleware, toolController.mergePdf);
 router.post('/split-pdf', upload.array('files'), toolMiddleware, toolController.splitPdf);
-// router.post('/compress-pdf', upload.array('files'), toolMiddleware, toolController.compressPdf);
+router.post('/compress-pdf', upload.array('files'), toolMiddleware, toolController.compressPdf);
 
 // Job status endpoint (no auth required for checking status)
 router.get('/job-status/:id', toolController.getJobStatus);
