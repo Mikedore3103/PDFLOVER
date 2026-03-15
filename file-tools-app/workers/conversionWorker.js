@@ -35,13 +35,17 @@ async function cleanupUploadedFiles(files) {
 }
 
 // Initialize Redis connection for worker
-const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
-  lazyConnect: true,
-});
+// Prefer REDIS_URL (TLS-capable, e.g. Upstash), fallback to host/port.
+const redisUrl = process.env.REDIS_URL;
+const redisConnection = redisUrl
+  ? new Redis(redisUrl)
+  : new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
+      maxRetriesPerRequest: null,
+      lazyConnect: true,
+    });
 
 // Create worker to process file conversion jobs
 const conversionWorker = new Worker(
