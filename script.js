@@ -2,7 +2,7 @@
 // CHANGE THIS to your Render.com backend URL after deployment
 // const API_URL = 'https://file-tools-app-backend.onrender.com';
 // For LOCAL TESTING, use: const API_URL = 'http://localhost:3001';
-const API_URL = 'https://pdflover-f8a3.onrender.com/';
+const API_URL = 'https://pdflover-f8a3.onrender.com';
 
 // DOM Elements
 const toolSection = document.getElementById('toolSection');
