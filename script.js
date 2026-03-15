@@ -210,10 +210,8 @@ function logout() {
   removeAuthToken();
   currentUser = null;
   updateAuthUI();
-  // Redirect to home if needed
-  if (window.location.pathname !== '/') {
-    window.location.href = '/';
-  }
+  // Stay within current site base (works for GitHub Pages subpaths)
+  window.location.href = './';
 }
 
 // Modal Functions
