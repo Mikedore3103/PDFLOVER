@@ -6,6 +6,7 @@ const API_URL = 'https://file-tools-app-backend.onrender.com';
 // DOM Elements
 const toolSection = document.getElementById('toolSection');
 const uploadSection = document.getElementById('uploadSection');
+const uploadBackdrop = document.getElementById('uploadBackdrop');
 const toolTitle = document.getElementById('toolTitle');
 const toolDesc = document.getElementById('toolDesc');
 const backBtn = document.getElementById('backBtn');
@@ -96,6 +97,20 @@ function showElement(element) {
 
 function hideElement(element) {
   element.classList.add('hidden');
+}
+
+function openUploadPanel() {
+  uploadSection.classList.add('is-open');
+  uploadBackdrop.classList.add('is-active');
+  document.body.classList.add('panel-open');
+  toolSection.classList.add('is-dimmed');
+}
+
+function closeUploadPanel() {
+  uploadSection.classList.remove('is-open');
+  uploadBackdrop.classList.remove('is-active');
+  document.body.classList.remove('panel-open');
+  toolSection.classList.remove('is-dimmed');
 }
 
 // Authentication Functions
@@ -280,12 +295,8 @@ function selectTool(toolElement) {
   toolTitle.textContent = selectedTool.name;
   toolDesc.textContent = selectedTool.desc;
 
-  hideElement(toolSection);
-  showElement(uploadSection);
+  openUploadPanel();
   resetUI();
-
-  // Scroll to upload section
-  uploadSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 // Mark premium tools
@@ -486,8 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Back button
   backBtn.addEventListener('click', () => {
-    hideElement(uploadSection);
-    showElement(toolSection);
+    closeUploadPanel();
     resetUI();
   });
 
@@ -550,6 +560,13 @@ document.addEventListener('DOMContentLoaded', () => {
   upgradeProBtn.addEventListener('click', () => {
     closeUpgradeModal();
     alert('Pro upgrade coming soon! Contact support for early access.');
+  });
+
+  uploadBackdrop.addEventListener('click', closeUploadPanel);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && uploadSection.classList.contains('is-open')) {
+      closeUploadPanel();
+    }
   });
 
   // Initialize
