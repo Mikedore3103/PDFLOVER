@@ -66,6 +66,20 @@ let isLoginMode = true;
 // Premium tools
 const PREMIUM_TOOLS = ['compress-pdf', 'ocr-pdf', 'batch-convert'];
 
+// File picker accept rules per tool
+const TOOL_ACCEPT = {
+  'merge-pdf': '.pdf',
+  'split-pdf': '.pdf',
+  'compress-pdf': '.pdf',
+  'pdf-to-jpg': '.pdf',
+  'jpg-to-pdf': '.jpg,.jpeg,.png',
+  'pdf-to-word': '.pdf',
+  'pdf-to-excel': '.pdf',
+  'pdf-to-powerpoint': '.pdf',
+  'unlock-pdf': '.pdf',
+  'protect-pdf': '.pdf'
+};
+
 // Utility Functions
 function formatFileSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -295,6 +309,7 @@ function selectTool(toolElement) {
 
   toolTitle.textContent = selectedTool.name;
   toolDesc.textContent = selectedTool.desc;
+  fileInput.accept = TOOL_ACCEPT[tool] || '';
 
   openUploadPanel();
   resetUI();
@@ -313,9 +328,24 @@ function markPremiumTools() {
 // File Handling
 function handleFileSelection(files) {
   const fileArray = Array.from(files);
+  const acceptList = (TOOL_ACCEPT[selectedTool?.tool] || '')
+    .split(',')
+    .map(ext => ext.trim().toLowerCase())
+    .filter(Boolean);
+
+  const allowedFiles = acceptList.length === 0
+    ? fileArray
+    : fileArray.filter(file => {
+        const extension = `.${file.name.split('.').pop().toLowerCase()}`;
+        return acceptList.includes(extension);
+      });
+
+  if (allowedFiles.length !== fileArray.length) {
+    alert(`Only ${acceptList.join(', ')} files are allowed for ${selectedTool?.name || 'this tool'}.`);
+  }
 
   // Add new files to existing ones
-  selectedFiles = [...selectedFiles, ...fileArray];
+  selectedFiles = [...selectedFiles, ...allowedFiles];
 
   renderFileList();
 
@@ -489,7 +519,7 @@ function showDownload(output) {
   const outputUrls = Array.isArray(output) ? output : [output];
   const downloadUrl = outputUrls[0]; // Use first file for download
 
-  downloadBtn.href = downloadUrl;
+  downloadBtn.href = downloadUrl.startsWith('http') ? downloadUrl : `${API_URL}${downloadUrl}`;
   downloadBtn.textContent = 'Download File';
 }
 
