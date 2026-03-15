@@ -47,7 +47,8 @@ app.use((req, res, next) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve frontend from repo root (index.html, style.css, script.js)
+app.use(express.static(path.join(__dirname, '..')));
 app.use('/uploads', express.static(uploadsDir));
 app.use('/conversions', express.static(conversionsDir));
 
