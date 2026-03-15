@@ -114,6 +114,12 @@ function hideElement(element) {
   element.classList.add('hidden');
 }
 
+function setupPdfWorker() {
+  if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+}
+
 function openUploadPanel() {
   uploadSection.classList.add('is-open');
   uploadBackdrop.classList.add('is-active');
@@ -375,20 +381,131 @@ function renderFileList() {
   selectedFiles.forEach((file, index) => {
     const fileItem = document.createElement('div');
     fileItem.className = 'file-item';
+    fileItem.setAttribute('draggable', 'true');
+    fileItem.dataset.index = index.toString();
 
     fileItem.innerHTML = `
+      <div class="file-preview" data-preview-index="${index}">
+        <div class="preview-placeholder">Loading preview...</div>
+      </div>
       <div class="file-info">
-        <span class="file-icon">${getFileIcon(file.name)}</span>
         <div class="file-details">
-          <h4>${file.name}</h4>
+          <h4 title="${file.name}">${file.name}</h4>
           <span class="file-size">${formatFileSize(file.size)}</span>
         </div>
       </div>
-      <button class="remove-btn" onclick="removeFile(${index})">Remove</button>
+      <div class="file-actions">
+        <button class="drag-handle" type="button" title="Drag to reorder">Reorder</button>
+        <button class="remove-btn" type="button" data-remove-index="${index}">Remove</button>
+      </div>
     `;
 
     fileList.appendChild(fileItem);
   });
+
+  attachFileListHandlers();
+  renderPreviews();
+}
+
+function attachFileListHandlers() {
+  fileList.querySelectorAll('.remove-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const index = Number(btn.dataset.removeIndex);
+      if (Number.isInteger(index)) {
+        removeFile(index);
+      }
+    });
+  });
+
+  let dragIndex = null;
+  fileList.querySelectorAll('.file-item').forEach((item) => {
+    item.addEventListener('dragstart', () => {
+      dragIndex = Number(item.dataset.index);
+      item.style.opacity = '0.6';
+    });
+
+    item.addEventListener('dragend', () => {
+      item.style.opacity = '1';
+    });
+
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const dropIndex = Number(item.dataset.index);
+      if (!Number.isInteger(dragIndex) || !Number.isInteger(dropIndex) || dragIndex === dropIndex) {
+        return;
+      }
+
+      const updated = [...selectedFiles];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(dropIndex, 0, moved);
+      selectedFiles = updated;
+      renderFileList();
+    });
+  });
+}
+
+function renderPreviews() {
+  selectedFiles.forEach((file, index) => {
+    const container = fileList.querySelector(`[data-preview-index="${index}"]`);
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (extension === 'pdf') {
+      renderPdfPreview(file, container);
+      return;
+    }
+
+    if (['jpg', 'jpeg', 'png'].includes(extension)) {
+      const img = document.createElement('img');
+      img.alt = file.name;
+      img.src = URL.createObjectURL(file);
+      img.onload = () => URL.revokeObjectURL(img.src);
+      container.appendChild(img);
+      return;
+    }
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'preview-placeholder';
+    placeholder.textContent = 'Preview not available';
+    container.appendChild(placeholder);
+  });
+}
+
+async function renderPdfPreview(file, container) {
+  if (!window.pdfjsLib) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'preview-placeholder';
+    placeholder.textContent = 'PDF preview unavailable';
+    container.appendChild(placeholder);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const pdf = await window.pdfjsLib.getDocument({ data: reader.result }).promise;
+      const page = await pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 0.6 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const context = canvas.getContext('2d');
+      await page.render({ canvasContext: context, viewport }).promise;
+      container.appendChild(canvas);
+    } catch (error) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'preview-placeholder';
+      placeholder.textContent = 'Preview failed';
+      container.appendChild(placeholder);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 // Upload and Processing
@@ -525,6 +642,7 @@ function showDownload(output) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  setupPdfWorker();
   // Tool selection
   document.querySelectorAll('.tool-card').forEach(card => {
     card.addEventListener('click', () => selectTool(card));
