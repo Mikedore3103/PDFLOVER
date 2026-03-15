@@ -1,7 +1,8 @@
 // ===== API CONFIGURATION =====
 // CHANGE THIS to your Render.com backend URL after deployment
-const API_URL = 'https://file-tools-app-backend.onrender.com';
+// const API_URL = 'https://file-tools-app-backend.onrender.com';
 // For LOCAL TESTING, use: const API_URL = 'http://localhost:3001';
+const API_URL = 'http://localhost:3001';
 
 // DOM Elements
 const toolSection = document.getElementById('toolSection');
@@ -52,7 +53,7 @@ const upgradeMessage = document.getElementById('upgradeMessage');
 const upgradeLoginBtn = document.getElementById('upgradeLoginBtn');
 const upgradeRegisterBtn = document.getElementById('upgradeRegisterBtn');
 const upgradeProBtn = document.getElementById('upgradeProBtn');
-const closeUpgradeModal = document.getElementById('closeUpgradeModal');
+const closeUpgradeModalBtn = document.getElementById('closeUpgradeModal');
 
 // State
 let selectedTool = null;
@@ -374,7 +375,7 @@ function uploadFiles() {
   showElement(progressContainer);
   hideElement(processBtn);
   progressFill.style.width = '0%';
-  progressText.textContent = 'Uploading...';
+  progressText.textContent = 'Uploading and processing...';
 
   const xhr = new XMLHttpRequest();
 
@@ -390,8 +391,12 @@ function uploadFiles() {
     if (xhr.status === 200) {
       const response = JSON.parse(xhr.responseText);
       if (response.success) {
-        currentJobId = response.jobId;
-        startJobPolling(currentJobId);
+        // Synchronous processing - directly show download
+        progressText.textContent = 'Processing completed!';
+        setTimeout(() => {
+          hideElement(progressContainer);
+          showDownload(response.output);
+        }, 1000);
       } else {
         // Handle limit reached or other errors
         if (xhr.status === 429) {
@@ -545,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
   authToggleBtn.addEventListener('click', () => openAuthModal(!isLoginMode));
 
   // Upgrade modal
-  closeUpgradeModal.addEventListener('click', closeUpgradeModal);
+  closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
   upgradeModal.addEventListener('click', (e) => {
     if (e.target === upgradeModal) closeUpgradeModal();
   });

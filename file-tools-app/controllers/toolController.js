@@ -1,7 +1,23 @@
 const multer = require('multer');
-const conversionQueue = require('../queues/conversionQueue');
+// const conversionQueue = require('../queues/conversionQueue');
 const { validateFiles } = require('../utils/fileValidator');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
+const fs = require('fs').promises;
+
+// Import services
+const pdfToJpgService = require('../services/pdfToJpgService');
+const jpgToPdfService = require('../services/jpgToPdfService');
+const mergePdfService = require('../services/mergePdfService');
+const splitPdfService = require('../services/splitPdfService');
+const compressPdfService = require('../services/compressPdfService');
+
+const toolServices = {
+  'pdf-to-jpg': pdfToJpgService,
+  'jpg-to-pdf': jpgToPdfService,
+  'merge-pdf': mergePdfService,
+  'split-pdf': splitPdfService,
+  'compress-pdf': compressPdfService,
+};
 
 function resolveToolName(req, overrideTool) {
   return overrideTool || req.body?.tool || req.params?.tool || '';
@@ -15,40 +31,49 @@ async function processToolRequest(req, res, overrideTool) {
     // Validate files (basic validation - size and type limits are handled by middleware)
     validateFiles(tool, files);
 
-    // Prepare job data with file paths and user info
-    const jobData = {
-      tool,
-      files: files.map(file => ({
-        path: file.path,
-        originalname: file.originalname,
-      })),
-      userType: req.userType || 'guest',
-      userId: req.user ? req.user._id : null,
-      userPlan: req.user ? req.user.plan : null
-    };
-
-    // Add job to queue
-    const job = await conversionQueue.add('convert', jobData);
-
-    // Prepare response with user context
-    const response = {
-      jobId: job.id,
-      message: 'File processing started. Check status with job ID.',
-      userType: req.userType,
-    };
-
-    // Add user info for registered users
-    if (req.user) {
-      response.user = {
-        plan: req.user.plan,
-        dailyUsageCount: req.user.dailyUsageCount,
-        limits: req.userLimits
-      };
-    } else {
-      response.limits = req.userLimits;
+    // Get the service
+    const service = toolServices[tool];
+    if (!service) {
+      return errorResponse(res, `Unsupported tool: ${tool}`, 400);
     }
 
-    return successResponse(res, response);
+    try {
+      // Execute the service
+      const output = await service(files);
+
+      // Clean up uploaded files
+      await Promise.all(
+        files.map(async (file) => {
+          try {
+            await fs.unlink(file.path);
+          } catch (err) {
+            console.error(`Failed to cleanup: ${file.path}`, err);
+          }
+        })
+      );
+
+      // Prepare response
+      const response = {
+        message: 'File processing completed.',
+        output,
+        userType: req.userType,
+      };
+
+      // Add user info for registered users
+      if (req.user) {
+        response.user = {
+          plan: req.user.plan,
+          dailyUsageCount: req.user.dailyUsageCount,
+          limits: req.userLimits
+        };
+      } else {
+        response.limits = req.userLimits;
+      }
+
+      return successResponse(res, response);
+    } catch (error) {
+      return errorResponse(res, error.message, error.statusCode || 500);
+    }
   } catch (err) {
     // Note: File cleanup will be handled by the worker after processing
     if (err instanceof multer.MulterError) {

@@ -21,6 +21,6 @@ router.post('/split-pdf', upload.array('files'), toolMiddleware, toolController.
 router.post('/compress-pdf', upload.array('files'), toolMiddleware, toolController.compressPdf);
 
 // Job status endpoint (no auth required for checking status)
-router.get('/job-status/:id', toolController.getJobStatus);
+// router.get('/job-status/:id', toolController.getJobStatus);
 
 module.exports = router;

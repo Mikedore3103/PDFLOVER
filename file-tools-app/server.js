@@ -8,13 +8,13 @@ const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
 
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/file-tools-app';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Mikedore:Justice6799@cluster0.isui1y2.mongodb.net/file-tools-app';
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Start the conversion worker
-require('./workers/conversionWorker');
+// require('./workers/conversionWorker');
 
 // Start the cleanup scheduler
 const cleanupJobs = startCleanupScheduler();

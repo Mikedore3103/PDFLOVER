@@ -1,12 +1,25 @@
 const { Queue } = require('bullmq');
 const Redis = require('ioredis');
+const { RedisMemoryServer } = require('redis-memory-server');
+
+// Start in-memory Redis server for development
+const redisServer = new RedisMemoryServer();
+redisServer.start().then(() => {
+  console.log('In-memory Redis server started');
+}).catch(err => {
+  console.error('Failed to start in-memory Redis:', err);
+});
+
+// Get Redis connection details
+const redisHost = process.env.REDIS_HOST || 'localhost';
+const redisPort = process.env.REDIS_PORT || (redisServer ? await redisServer.getPort() : 6379);
+const redisPassword = process.env.REDIS_PASSWORD || undefined;
 
 // Initialize Redis connection
-// In production, configure with proper Redis URL and options
 const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
+  host: redisHost,
+  port: redisPort,
+  password: redisPassword,
   maxRetriesPerRequest: null,
   lazyConnect: true,
 });
