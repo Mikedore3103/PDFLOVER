@@ -11,6 +11,37 @@ const { successResponse, errorResponse } = require('../utils/responseHandler');
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const EMAIL_VERIFY_DISABLED = process.env.EMAIL_VERIFY_DISABLED === 'true';
+const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
+const MAILERSEND_FROM = process.env.MAILERSEND_FROM;
+
+// In-memory email verification storage (for MVP; replace with DB/Redis in production)
+const verificationCodes = new Map();
+const verifiedEmails = new Map();
+const CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const VERIFIED_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function storeVerificationCode(email, code) {
+  verificationCodes.set(email, { code, expiresAt: Date.now() + CODE_TTL_MS });
+}
+
+function storeVerifiedEmail(email) {
+  verifiedEmails.set(email, { expiresAt: Date.now() + VERIFIED_TTL_MS });
+}
+
+function isEmailVerified(email) {
+  const record = verifiedEmails.get(email);
+  if (!record) return false;
+  if (Date.now() > record.expiresAt) {
+    verifiedEmails.delete(email);
+    return false;
+  }
+  return true;
+}
 
 /**
  * Generate JWT token for user
@@ -43,6 +74,10 @@ async function register(req, res) {
 
     if (password.length < 6) {
       return errorResponse(res, 'Password must be at least 6 characters long', 400);
+    }
+
+    if (!EMAIL_VERIFY_DISABLED && !isEmailVerified(email)) {
+      return errorResponse(res, 'Please verify your email before signing up.', 400);
     }
 
     // Check if user already exists
@@ -180,9 +215,95 @@ async function updatePlan(req, res) {
   }
 }
 
+/**
+ * Send email verification code
+ */
+async function sendVerification(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return errorResponse(res, 'Email is required', 400);
+    }
+
+    const code = generateCode();
+    storeVerificationCode(email, code);
+
+    if (!MAILERSEND_API_KEY || !MAILERSEND_FROM) {
+      return successResponse(res, {
+        message: 'Verification configured for development. MAILERSEND_API_KEY/MAILERSEND_FROM not set.',
+        code
+      });
+    }
+
+    const mailersendResponse = await fetch('https://api.mailersend.com/v1/email', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${MAILERSEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        from: {
+          email: MAILERSEND_FROM
+        },
+        to: [
+          { email }
+        ],
+        subject: 'Your verification code',
+        html: `<p>Your verification code is <strong>${code}</strong>. It expires in 10 minutes.</p>`,
+        text: `Your verification code is ${code}. It expires in 10 minutes.`
+      })
+    });
+
+    if (!mailersendResponse.ok) {
+      const errorBody = await mailersendResponse.text();
+      return errorResponse(res, `Email send failed: ${errorBody}`, 502);
+    }
+
+    return successResponse(res, { message: 'Verification code sent.' });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+}
+
+/**
+ * Verify email code
+ */
+async function verifyEmail(req, res) {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return errorResponse(res, 'Email and code are required', 400);
+    }
+
+    const record = verificationCodes.get(email);
+    if (!record) {
+      return errorResponse(res, 'Verification code not found. Request a new code.', 400);
+    }
+
+    if (Date.now() > record.expiresAt) {
+      verificationCodes.delete(email);
+      return errorResponse(res, 'Verification code expired. Request a new code.', 400);
+    }
+
+    if (record.code !== code) {
+      return errorResponse(res, 'Invalid verification code.', 400);
+    }
+
+    verificationCodes.delete(email);
+    storeVerifiedEmail(email);
+
+    return successResponse(res, { message: 'Email verified.' });
+  } catch (error) {
+    return errorResponse(res, error.message, 500);
+  }
+}
+
 module.exports = {
   register,
   login,
   getProfile,
-  updatePlan
+  updatePlan,
+  sendVerification,
+  verifyEmail
 };

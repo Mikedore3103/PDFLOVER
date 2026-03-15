@@ -635,6 +635,10 @@ body {
   overflow-y: auto;
 }
 
+.modal-content.nudge {
+  max-width: 440px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -677,6 +681,67 @@ body {
   border: 1px solid var(--line);
   border-radius: 6px;
   font-size: 1rem;
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.password-field input {
+  flex: 1;
+}
+
+.toggle-password {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.toggle-password:hover {
+  background: var(--bg);
+}
+
+.verify-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.verify-row input {
+  flex: 1;
+}
+
+.verify-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.verify-btn:hover {
+  background: var(--bg);
+}
+
+.verify-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.robot-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text);
 }
 
 .form-group input:focus {

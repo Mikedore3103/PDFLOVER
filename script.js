@@ -29,6 +29,7 @@ const guestInfo = document.getElementById('guestInfo');
 const userInfo = document.getElementById('userInfo');
 const userEmail = document.getElementById('userEmail');
 const userPlan = document.getElementById('userPlan');
+const upgradeBtn = document.getElementById('upgradeBtn');
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -41,6 +42,11 @@ const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const confirmPasswordInput = document.getElementById('confirmPassword');
 const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+const emailVerifyGroup = document.getElementById('emailVerifyGroup');
+const sendVerifyBtn = document.getElementById('sendVerifyBtn');
+const emailVerifyCodeInput = document.getElementById('emailVerifyCode');
+const robotCheckGroup = document.getElementById('robotCheckGroup');
+const robotCheck = document.getElementById('robotCheck');
 const authSubmitBtn = document.getElementById('authSubmitBtn');
 const authToggleText = document.getElementById('authToggleText');
 const authToggleBtn = document.getElementById('authToggleBtn');
@@ -55,6 +61,11 @@ const upgradeRegisterBtn = document.getElementById('upgradeRegisterBtn');
 const upgradeProBtn = document.getElementById('upgradeProBtn');
 const closeUpgradeModalBtn = document.getElementById('closeUpgradeModal');
 
+// Upgrade Nudge Modal Elements
+const upgradeNudgeModal = document.getElementById('upgradeNudgeModal');
+const closeNudgeModal = document.getElementById('closeNudgeModal');
+const nudgeUpgradeBtn = document.getElementById('nudgeUpgradeBtn');
+
 // State
 let selectedTool = null;
 let selectedFiles = [];
@@ -62,6 +73,7 @@ let currentJobId = null;
 let pollingInterval = null;
 let currentUser = null;
 let isLoginMode = true;
+let emailVerified = false;
 
 // Premium tools
 const PREMIUM_TOOLS = ['compress-pdf', 'ocr-pdf', 'batch-convert'];
@@ -156,6 +168,11 @@ function updateAuthUI() {
     userEmail.textContent = currentUser.email;
     userPlan.textContent = currentUser.plan.toUpperCase();
     userPlan.classList.toggle('pro', currentUser.plan === 'pro');
+    if (currentUser.plan === 'pro') {
+      hideElement(upgradeBtn);
+    } else {
+      showElement(upgradeBtn);
+    }
   } else {
     showElement(guestInfo);
     hideElement(userInfo);
@@ -208,8 +225,17 @@ function openAuthModal(login = true) {
   authToggleBtn.textContent = login ? 'Sign Up' : 'Login';
 
   hideElement(confirmPasswordGroup);
+  hideElement(emailVerifyGroup);
+  hideElement(robotCheckGroup);
+  emailVerified = false;
+  if (robotCheck) {
+    robotCheck.checked = false;
+  }
   if (!login) {
     showElement(confirmPasswordGroup);
+    showElement(emailVerifyGroup);
+  } else {
+    showElement(robotCheckGroup);
   }
 
   authForm.reset();
@@ -223,6 +249,13 @@ function closeAuthModal() {
 function openUpgradeModal(title = 'Free Usage Limit Reached', message = 'Create a free account for higher limits or upgrade to Pro for unlimited access.') {
   upgradeTitle.textContent = title;
   upgradeMessage.textContent = message;
+  if (currentUser) {
+    hideElement(upgradeLoginBtn);
+    hideElement(upgradeRegisterBtn);
+  } else {
+    showElement(upgradeLoginBtn);
+    showElement(upgradeRegisterBtn);
+  }
   showElement(upgradeModal);
 }
 
@@ -236,10 +269,19 @@ async function handleAuthSubmit(e) {
   const email = emailInput.value.trim();
   const password = passwordInput.value;
 
+  if (isLoginMode && robotCheck && !robotCheck.checked) {
+    alert('Please confirm you are not a robot.');
+    return;
+  }
+
   if (!isLoginMode) {
     const confirmPassword = confirmPasswordInput.value;
     if (password !== confirmPassword) {
       alert('Passwords do not match');
+      return;
+    }
+    if (!emailVerified) {
+      alert('Please verify your email before signing up.');
       return;
     }
   }
@@ -273,6 +315,68 @@ async function handleAuthSubmit(e) {
   } finally {
     authSubmitBtn.disabled = false;
     authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
+  }
+}
+
+async function requestEmailVerification() {
+  const email = emailInput.value.trim();
+  if (!email) {
+    alert('Enter your email first.');
+    return;
+  }
+
+  sendVerifyBtn.disabled = true;
+  sendVerifyBtn.textContent = 'Sending...';
+
+  try {
+    const response = await fetch(`${API_URL}/api/auth/send-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to send verification code.');
+    }
+    if (data.code) {
+      alert(`Verification code (dev mode): ${data.code}`);
+    } else {
+      alert('Verification code sent to your email.');
+    }
+  } catch (error) {
+    alert(error.message || 'Failed to send verification code.');
+  } finally {
+    sendVerifyBtn.disabled = false;
+    sendVerifyBtn.textContent = 'Send Code';
+  }
+}
+
+async function verifyEmailCode() {
+  const email = emailInput.value.trim();
+  const code = emailVerifyCodeInput.value.trim();
+  if (!email || !code) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/api/auth/verify-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, code })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Verification failed.');
+    }
+    emailVerified = true;
+    alert('Email verified. You can now sign up.');
+  } catch (error) {
+    emailVerified = false;
+    alert(error.message || 'Verification failed.');
   }
 }
 
@@ -643,6 +747,16 @@ function showDownload(output) {
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   setupPdfWorker();
+  document.querySelectorAll('.toggle-password').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.textContent = isPassword ? 'Hide' : 'Show';
+    });
+  });
   // Tool selection
   document.querySelectorAll('.tool-card').forEach(card => {
     card.addEventListener('click', () => selectTool(card));
@@ -688,6 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loginBtn.addEventListener('click', () => openAuthModal(true));
   registerBtn.addEventListener('click', () => openAuthModal(false));
   logoutBtn.addEventListener('click', logout);
+  upgradeBtn.addEventListener('click', () => openUpgradeModal('Upgrade to Pro', 'Unlock bigger files, higher limits, and priority processing.'));
 
   // Auth modal
   closeModal.addEventListener('click', closeAuthModal);
@@ -696,6 +811,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   authForm.addEventListener('submit', handleAuthSubmit);
   authToggleBtn.addEventListener('click', () => openAuthModal(!isLoginMode));
+  if (sendVerifyBtn) {
+    sendVerifyBtn.addEventListener('click', requestEmailVerification);
+  }
+  if (emailVerifyCodeInput) {
+    emailVerifyCodeInput.addEventListener('change', verifyEmailCode);
+  }
 
   // Upgrade modal
   closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
@@ -715,6 +836,22 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('Pro upgrade coming soon! Contact support for early access.');
   });
 
+  // Upgrade nudge modal
+  if (closeNudgeModal) {
+    closeNudgeModal.addEventListener('click', () => hideElement(upgradeNudgeModal));
+  }
+  if (upgradeNudgeModal) {
+    upgradeNudgeModal.addEventListener('click', (e) => {
+      if (e.target === upgradeNudgeModal) hideElement(upgradeNudgeModal);
+    });
+  }
+  if (nudgeUpgradeBtn) {
+    nudgeUpgradeBtn.addEventListener('click', () => {
+      hideElement(upgradeNudgeModal);
+      openUpgradeModal('Upgrade to Pro', 'Unlock bigger files, higher limits, and priority processing.');
+    });
+  }
+
   uploadBackdrop.addEventListener('click', closeUploadPanel);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && uploadSection.classList.contains('is-open')) {
@@ -725,6 +862,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize
   loadUserProfile();
   markPremiumTools();
+
+  setTimeout(() => {
+    if (currentUser && currentUser.plan === 'pro') {
+      return;
+    }
+    if (!sessionStorage.getItem('upgradeNudgeShown')) {
+      sessionStorage.setItem('upgradeNudgeShown', 'true');
+      showElement(upgradeNudgeModal);
+    }
+  }, 30000);
 
   console.log('File Tools frontend loaded successfully');
   console.log(`Backend API URL: ${API_URL}`);

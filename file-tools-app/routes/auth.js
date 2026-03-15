@@ -11,6 +11,8 @@ const { requireAuth } = require('../middleware/usageLimiter');
 const router = express.Router();
 
 // Public routes
+router.post('/send-verification', authController.sendVerification);
+router.post('/verify-email', authController.verifyEmail);
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 
