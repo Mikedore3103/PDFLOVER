@@ -739,7 +739,7 @@ function showDownload(output) {
   const downloadUrl = outputUrls[0]; // Use first file for download
 
   downloadBtn.href = downloadUrl.startsWith('http') ? downloadUrl : `${API_URL}${downloadUrl}`;
-  downloadBtn.textContent = 'Download File';
+  downloadBtn.textContent = downloadUrl.endsWith('.zip') ? 'Download ZIP' : 'Download File';
 }
 
 // Event Listeners
