@@ -178,19 +178,27 @@ body {
 }
 
 .back-btn {
-  background: none;
-  border: none;
-  color: var(--brand);
-  font-size: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 0.9rem;
   cursor: pointer;
   margin-bottom: 1rem;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .back-btn:hover {
-  text-decoration: underline;
+  background: var(--bg);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 #toolTitle {

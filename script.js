@@ -851,6 +851,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   uploadBackdrop.addEventListener('click', closeUploadPanel);
+  uploadSection.addEventListener('click', (e) => {
+    if (e.target === uploadSection) {
+      closeUploadPanel();
+      resetUI();
+    }
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && uploadSection.classList.contains('is-open')) {
       closeUploadPanel();
