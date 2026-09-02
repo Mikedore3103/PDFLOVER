@@ -37,7 +37,7 @@
 ### Authentication System
 - **`middleware/guestLimiter.js`**
   - Guest usage tracking by IP address
-  - 3 conversions per 24 hours limit
+  - 10 conversions per 24 hours limit
   - 10MB file size limit for guests
   
 - **`middleware/usageLimiter.js`**
@@ -252,8 +252,8 @@ http://localhost:3001
 
 ### Guest Usage
 - [ ] Upload without login
-- [ ] 3 uploads succeed
-- [ ] 4th upload blocked (429)
+- [ ] 10 uploads succeed
+- [ ] 11th upload blocked (429)
 - [ ] Upgrade modal appears
 - [ ] Upgrade modal has 3 buttons (Login, Sign Up, Pro)
 

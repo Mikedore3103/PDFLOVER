@@ -8,7 +8,7 @@ This file provides quick access to all key code components of the authentication
 
 **Key Features:**
 - IP-based tracking (can switch to Redis for production)
-- 3 conversions per 24 hours
+- 10 conversions per 24 hours
 - 10MB max file size
 - Auto-reset daily
 
@@ -403,7 +403,7 @@ app.use('/api/auth', authRouter);
    → Creates job with userType='guest'
    → Returns response with limits
    ↓
-8. Frontend shows: "3/3 conversions remaining"
+8. Frontend shows: "10/10 conversions remaining"
 ```
 
 ### Free User at Limit
@@ -470,7 +470,7 @@ app.use('/api/auth', authRouter);
 ### GUEST_LIMITS (guestLimiter.js)
 ```javascript
 {
-  maxConversions: 3,
+   maxConversions: 10,
   maxFileSize: 10 * 1024 * 1024,      // 10MB
   resetInterval: 24 * 60 * 60 * 1000  // 24 hours
 }

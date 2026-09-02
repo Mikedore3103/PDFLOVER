@@ -2,7 +2,7 @@
  * Guest Usage Limiter Middleware
  *
  * Tracks guest user conversions using IP address as identifier.
- * Limits: 3 conversions per day, 10MB max file size.
+ * Limits: 10 conversions per day, 10MB max file size.
  * Resets daily at midnight.
  */
 
@@ -16,7 +16,7 @@ const RESET_INTERVAL = 24 * 60 * 60 * 1000;
 
 // Guest limits
 const GUEST_LIMITS = {
-  maxConversions: 3,
+  maxConversions: 10,
   maxFileSize: 10 * 1024 * 1024, // 10MB
   resetInterval: RESET_INTERVAL
 };

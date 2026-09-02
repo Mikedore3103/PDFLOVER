@@ -11,7 +11,7 @@
 - **Location:** `middleware/guestLimiter.js`
 - **Features:**
   - IP-based usage tracking
-  - 3 conversions per 24 hours
+  - 10 conversions per 24 hours
   - 10MB max file size
   - No database required
   - In-memory storage (easily switched to Redis)
@@ -19,7 +19,7 @@
 **How It Works:**
 - User visits site, no login needed
 - Guest can use any public tool immediately
-- After 3 uploads in 24h, gets "limit reached" message
+- After 10 uploads in 24h, gets "limit reached" message
 - Can create account to get 20 conversions
 
 ### 2. ✅ Free Registered User Plan
@@ -126,7 +126,7 @@ Upload → Multer parse → Check JWT & limits → Process
 
 **Behavior:**
 ```
-Guest: 3/day, 10MB
+Guest: 10/day, 10MB
 Free:  20/day, 50MB
 Pro:   ∞/day, 500MB
 ```
@@ -350,8 +350,8 @@ Server-side validation critical (prevents direct API calls)
 
 ### Guest Usage
 - [ ] Guest can upload without login (5 times)
-- [ ] 4th upload succeeds
-- [ ] 4th upload fails with 429
+- [ ] 10th upload succeeds
+- [ ] 11th upload fails with 429
 - [ ] Error message shows in modal
 - [ ] User can create account from modal
 - [ ] Guest limit resets after 24 hours
@@ -478,11 +478,11 @@ Server-side validation critical (prevents direct API calls)
 ### As a Guest
 ```
 ✓ Use any public tool immediately
-✓ Upload up to 3 files per day
+✓ Upload up to 10 files per day
 ✓ Max 10MB file size
 ✓ No account required
 ✗ Cannot use premium tools
-✗ Cannot exceed 3 conversions/day
+✗ Cannot exceed 10 conversions/day
 ```
 
 ### As Free User

@@ -458,7 +458,7 @@ If you want to separate frontend and backend:
 - [ ] **Registration**: Create new account through UI
 - [ ] **Login**: Login with new account
 - [ ] **File Upload**: Upload a PDF as logged-in user
-- [ ] **Guest Access**: Logout and try uploading (should limit to 3/day)
+- [ ] **Guest Access**: Logout and try uploading (should limit to 10/day)
 - [ ] **Job Status**: Check if conversion job shows progress
 - [ ] **Download**: Download converted file
 - [ ] **Error Handling**: Various error cases show proper messages
