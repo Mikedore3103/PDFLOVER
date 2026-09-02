@@ -85,11 +85,6 @@ const TOOL_ACCEPT = {
   'compress-pdf': '.pdf',
   'pdf-to-jpg': '.pdf',
   'jpg-to-pdf': '.jpg,.jpeg,.png',
-  'pdf-to-word': '.pdf',
-  'pdf-to-excel': '.pdf',
-  'pdf-to-powerpoint': '.pdf',
-  'unlock-pdf': '.pdf',
-  'protect-pdf': '.pdf'
 };
 
 // Utility Functions

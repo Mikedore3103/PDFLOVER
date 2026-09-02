@@ -1,6 +1,10 @@
 const path = require('path');
 const fs = require('fs');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 const { fromPath } = require('pdf2pic');
+
+const execFileAsync = promisify(execFile);
 
 const conversionsDir = path.join(__dirname, '..', 'conversions');
 if (!fs.existsSync(conversionsDir)) {
@@ -27,6 +31,16 @@ async function pdfToJpg(file) {
     const err = new Error('Invalid file type. Please upload a PDF file.');
     err.statusCode = 400;
     throw err;
+  }
+
+  try {
+    await execFileAsync('gm', ['version']);
+  } catch (error) {
+    const dependencyError = new Error(
+      'PDF to JPG is temporarily unavailable because GraphicsMagick is not installed on the server.'
+    );
+    dependencyError.statusCode = 503;
+    throw dependencyError;
   }
 
   const safeBaseName = sanitizeName(path.basename(file.originalname, extension));

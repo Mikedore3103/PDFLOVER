@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: pdflover
+    env: node
+    buildCommand: apt-get update && apt-get install -y graphicsmagick ghostscript && npm --prefix file-tools-app install
+    startCommand: npm --prefix file-tools-app start
+    healthCheckPath: /api
