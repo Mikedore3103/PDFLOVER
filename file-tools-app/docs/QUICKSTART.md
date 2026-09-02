@@ -26,7 +26,7 @@ All required packages:
 - ioredis: Redis client
 - multer: File uploads
 - pdf-lib, pdf2pic, pdfkit: PDF processing
-- pdf-parse, docx, xlsx, pptxgenjs: PDF export formats
+- docx, exceljs, pptxgenjs: PDF export formats
 
 PDF to JPG and PDF to PowerPoint require GraphicsMagick and Ghostscript. PDF
 unlock/protect require qpdf. The Render deployment configuration installs these

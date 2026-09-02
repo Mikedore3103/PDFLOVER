@@ -1,34 +1,35 @@
 const path = require('path');
 const fs = require('fs').promises;
-const pdfParse = require('pdf-parse');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
+const { renderPdfPages, removeRenderedPages } = require('./renderPdfPages');
 
 const conversionsDir = path.join(__dirname, '..', 'conversions');
 
-function lineToCells(line) {
-  const cells = line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/);
-  return cells.map(cell => cell.trim()).filter(Boolean);
-}
-
 async function pdfToExcel(files) {
-  const input = await fs.readFile(files[0].path);
-  const parsed = await pdfParse(input);
-  const rows = parsed.text
-    .split(/\r?\n/)
-    .map(lineToCells)
-    .filter(row => row.length > 0);
-
-  if (rows.length === 0) {
-    rows.push(['No selectable text found. This PDF may require OCR.']);
+  const pages = await renderPdfPages(files[0]);
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('PDF pages');
+    let topRow = 0;
+    for (const page of pages) {
+      const imageHeight = Math.round(816 * page.height / page.width);
+      const imageId = workbook.addImage({ buffer: await fs.readFile(page.path), extension: 'png' });
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: topRow },
+        ext: { width: 816, height: imageHeight }
+      });
+      topRow += Math.ceil(imageHeight / 15) + 2;
+      while (worksheet.rowCount < topRow) {
+        worksheet.addRow([]);
+      }
+    }
+    const outputName = `${path.basename(files[0].originalname, path.extname(files[0].originalname))}-${Date.now()}.xlsx`;
+    const outputPath = path.join(conversionsDir, outputName);
+    await workbook.xlsx.writeFile(outputPath);
+    return `/conversions/${outputName}`;
+  } finally {
+    await removeRenderedPages(pages);
   }
-
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'PDF text');
-  const outputName = `${path.basename(files[0].originalname, path.extname(files[0].originalname))}-${Date.now()}.xlsx`;
-  const outputPath = path.join(conversionsDir, outputName);
-  XLSX.writeFile(workbook, outputPath);
-  return `/conversions/${outputName}`;
 }
 
 module.exports = pdfToExcel;
