@@ -6,17 +6,27 @@
   <title>File Tools - Professional PDF Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="header">
     <div class="container">
-      <h1 class="brand">File Tools</h1>
-      <p class="tagline">Professional PDF Platform</p>
+      <div class="brand-lockup">
+        <div class="brand-mark"><i data-lucide="file-stack"></i></div>
+        <div>
+          <h1 class="brand">File Tools</h1>
+          <p class="tagline">Make documents move</p>
+        </div>
+      </div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#tools">Tools</a>
+        <a href="#uploadSection">Workspace</a>
+      </nav>
       <div class="auth-section">
         <div id="guestInfo" class="user-info">
-          <span>Using as Guest</span>
+          <span class="guest-label"><i data-lucide="sparkles"></i> Guest mode</span>
           <button id="loginBtn" class="auth-btn">Login</button>
           <button id="registerBtn" class="auth-btn primary">Sign Up</button>
         </div>
@@ -34,55 +44,61 @@
     <!-- Tool Selection Grid -->
     <section id="toolSection" class="tool-section">
       <div class="container">
-        <h2 class="section-title">Choose Your Tool</h2>
+        <div class="section-heading" id="tools">
+          <div>
+            <p class="section-kicker">Your document desk</p>
+            <h2 class="section-title">What are you working on?</h2>
+          </div>
+          <p class="section-note">Fast, focused tools for the files that matter.</p>
+        </div>
         <div class="tool-grid">
           <div class="tool-card" data-tool="merge-pdf" data-name="Merge PDF" data-desc="Combine multiple files into a single PDF">
-            <div class="tool-icon">📄</div>
+            <div class="tool-icon"><i data-lucide="layers-2"></i></div>
             <h3>Merge PDFs</h3>
             <p>Combine multiple files into a single PDF</p>
           </div>
           <div class="tool-card" data-tool="split-pdf" data-name="Split PDF" data-desc="Extract pages or split one PDF into multiple documents">
-            <div class="tool-icon">✂️</div>
+            <div class="tool-icon"><i data-lucide="scissors"></i></div>
             <h3>Split PDF</h3>
             <p>Extract pages or split one PDF into multiple documents</p>
           </div>
           <div class="tool-card" data-tool="compress-pdf" data-name="Compress PDF" data-desc="Reduce file size while preserving quality">
-            <div class="tool-icon">🗜️</div>
+            <div class="tool-icon"><i data-lucide="minimize-2"></i></div>
             <h3>Compress PDF</h3>
             <p>Reduce file size while preserving quality</p>
           </div>
           <div class="tool-card" data-tool="pdf-to-jpg" data-name="PDF to JPG" data-desc="Export pages as high-quality JPG images">
-            <div class="tool-icon">🖼️</div>
+            <div class="tool-icon"><i data-lucide="image"></i></div>
             <h3>PDF to JPG</h3>
             <p>Export pages as high-quality JPG images</p>
           </div>
           <div class="tool-card" data-tool="jpg-to-pdf" data-name="JPG to PDF" data-desc="Turn images into clean, shareable PDF files">
-            <div class="tool-icon">📷</div>
+            <div class="tool-icon"><i data-lucide="image-plus"></i></div>
             <h3>JPG to PDF</h3>
             <p>Turn images into clean, shareable PDF files</p>
           </div>
           <div class="tool-card" data-tool="pdf-to-word" data-name="PDF to Word" data-desc="Preserve each PDF page's visual layout in a DOCX document">
-            <div class="tool-icon">📝</div>
+            <div class="tool-icon"><i data-lucide="file-pen-line"></i></div>
             <h3>PDF to Word</h3>
             <p>Preserve each PDF page's visual layout in a DOCX document</p>
           </div>
           <div class="tool-card" data-tool="pdf-to-excel" data-name="PDF to Excel" data-desc="Preserve each PDF page's visual layout in a spreadsheet">
-            <div class="tool-icon">📊</div>
+            <div class="tool-icon"><i data-lucide="table-2"></i></div>
             <h3>PDF to Excel</h3>
             <p>Preserve each PDF page's visual layout in a spreadsheet</p>
           </div>
           <div class="tool-card" data-tool="pdf-to-powerpoint" data-name="PDF to PowerPoint" data-desc="Place each PDF page on an editable presentation slide">
-            <div class="tool-icon">📽️</div>
+            <div class="tool-icon"><i data-lucide="presentation"></i></div>
             <h3>PDF to PowerPoint</h3>
             <p>Place each PDF page on an editable presentation slide</p>
           </div>
           <div class="tool-card" data-tool="unlock-pdf" data-name="Unlock PDF" data-desc="Remove password protection when you have permission">
-            <div class="tool-icon">🔓</div>
+            <div class="tool-icon"><i data-lucide="lock-open"></i></div>
             <h3>Unlock PDF</h3>
             <p>Remove password protection when you have permission</p>
           </div>
           <div class="tool-card" data-tool="protect-pdf" data-name="Protect PDF" data-desc="Encrypt a PDF with a password">
-            <div class="tool-icon">🔒</div>
+            <div class="tool-icon"><i data-lucide="lock-keyhole"></i></div>
             <h3>Protect PDF</h3>
             <p>Encrypt a PDF with a password</p>
           </div>
@@ -102,7 +118,7 @@
         <div id="uploadArea" class="upload-area">
           <input type="file" id="fileInput" multiple hidden />
           <div class="upload-content">
-            <div class="upload-icon">📁</div>
+            <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
             <h3>Drag & Drop your files here</h3>
             <p>or</p>
             <button id="selectBtn" class="select-btn">Select Files</button>
@@ -129,11 +145,11 @@
           <p id="statusText">Processing your files...</p>
         </div>
 
-        <button id="processBtn" class="process-btn hidden">Process Files</button>
+        <button id="processBtn" class="process-btn hidden"><i data-lucide="arrow-up-right"></i> Process Files</button>
 
         <div id="downloadContainer" class="download-container hidden">
           <div class="download-card">
-            <div class="download-icon">✅</div>
+            <div class="download-icon"><i data-lucide="circle-check"></i></div>
             <h3>File Ready!</h3>
             <p>Your file has been processed successfully</p>
             <a id="downloadBtn" class="download-btn" href="#" target="_blank">Download File</a>

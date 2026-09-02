@@ -760,6 +760,9 @@ function showDownload(output) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
   setupPdfWorker();
   document.querySelectorAll('.toggle-password').forEach((btn) => {
     btn.addEventListener('click', () => {
