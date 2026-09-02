@@ -25,12 +25,12 @@ All required packages:
 - bullmq: Job queue
 - ioredis: Redis client
 - multer: File uploads
-- pdf-lib, pdf2pic, pdfkit: PDF processing
+- pdf-lib, pdfkit: PDF processing
 - docx, exceljs, pptxgenjs: PDF export formats
 
-PDF to JPG and PDF to PowerPoint require GraphicsMagick and Ghostscript. PDF
-unlock/protect require qpdf. The Render deployment configuration installs these
-native tools automatically.
+PDF rendering and PDF to PowerPoint require Poppler. PDF compression requires
+Ghostscript. PDF unlock/protect require qpdf. The Render deployment
+configuration installs these native tools automatically.
 - node-cron: Task scheduling
 ```
 

@@ -2,7 +2,6 @@ const path = require('path');
 const fs = require('fs').promises;
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { fromPath } = require('pdf2pic');
 
 const execFileAsync = promisify(execFile);
 
@@ -12,7 +11,18 @@ function sanitizeName(name) {
   return name.replace(/[^a-zA-Z0-9-_]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'file';
 }
 
-async function renderPdfPages(file) {
+async function getPngSize(filePath) {
+  const header = await fs.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(24);
+    await header.read(buffer, 0, 24, 0);
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  } finally {
+    await header.close();
+  }
+}
+
+async function renderPdfPages(file, format = 'png') {
   const extension = path.extname(file.originalname).toLowerCase();
   if (extension !== '.pdf') {
     const error = new Error('Invalid file type. Please upload a PDF file.');
@@ -20,25 +30,31 @@ async function renderPdfPages(file) {
     throw error;
   }
 
+  const baseName = `${sanitizeName(path.basename(file.originalname, extension))}-${Date.now()}`;
+  const outputPrefix = path.join(conversionsDir, `${baseName}-page`);
+  const outputFlag = format === 'jpg' ? '-jpeg' : '-png';
+
   try {
-    await execFileAsync('gm', ['version']);
+    await execFileAsync('pdftoppm', ['-r', '150', outputFlag, file.path, outputPrefix]);
   } catch (error) {
     const dependencyError = new Error(
-      'PDF rendering is temporarily unavailable because GraphicsMagick is not installed on the server.'
+      error.code === 'ENOENT'
+        ? 'PDF rendering is temporarily unavailable because Poppler is not installed on the server.'
+        : error.stderr?.trim() || 'Could not render this PDF.'
     );
-    dependencyError.statusCode = 503;
+    dependencyError.statusCode = error.code === 'ENOENT' ? 503 : 400;
     throw dependencyError;
   }
 
-  const baseName = `${sanitizeName(path.basename(file.originalname, extension))}-${Date.now()}`;
-  const converter = fromPath(file.path, {
-    density: 150,
-    format: 'png',
-    saveFilename: `${baseName}-page`,
-    savePath: conversionsDir
-  });
-  const pages = await converter.bulk(-1, { responseType: 'image' });
-  const renderedPages = Array.isArray(pages) ? pages : [pages];
+  const extensionName = format === 'jpg' ? '.jpg' : '.png';
+  const files = (await fs.readdir(conversionsDir))
+    .filter(name => name.startsWith(`${baseName}-page-`) && name.endsWith(extensionName))
+    .sort((left, right) => Number(left.match(/-(\d+)\.[^.]+$/)?.[1]) - Number(right.match(/-(\d+)\.[^.]+$/)?.[1]));
+  const renderedPages = await Promise.all(files.map(async (name, index) => {
+    const pagePath = path.join(conversionsDir, name);
+    const size = format === 'png' ? await getPngSize(pagePath) : { width: 1275, height: 1650 };
+    return { path: pagePath, ...size, page: index + 1 };
+  }));
 
   if (!renderedPages.length || !renderedPages[0].path) {
     const error = new Error('Conversion failed. No PDF pages were rendered.');

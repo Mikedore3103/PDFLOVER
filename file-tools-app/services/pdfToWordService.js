@@ -9,12 +9,12 @@ async function pdfToWord(files) {
   const pages = await renderPdfPages(files[0]);
   try {
     const children = [];
-        for (let index = 0; index < pages.length; index += 1) {
-          const page = pages[index];
-          children.push(new Paragraph({
+    for (let index = 0; index < pages.length; index += 1) {
+      const page = pages[index];
+      children.push(new Paragraph({
         children: [new ImageRun({
-              data: await fs.readFile(page.path),
-              transformation: { width: 816, height: Math.round(816 * page.height / page.width) }
+          data: await fs.readFile(page.path),
+          transformation: { width: 816, height: Math.round(816 * page.height / page.width) }
         })],
         pageBreakBefore: index > 0
       }));
