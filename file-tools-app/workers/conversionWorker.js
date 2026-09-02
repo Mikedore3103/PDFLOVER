@@ -8,6 +8,10 @@ const jpgToPdfService = require('../services/jpgToPdfService');
 const mergePdfService = require('../services/mergePdfService');
 const splitPdfService = require('../services/splitPdfService');
 const compressPdfService = require('../services/compressPdfService');
+const pdfToWordService = require('../services/pdfToWordService');
+const pdfToExcelService = require('../services/pdfToExcelService');
+const pdfToPowerpointService = require('../services/pdfToPowerpointService');
+const { unlockPdfService, protectPdfService } = require('../services/qpdfService');
 
 // Map tool names to their respective service functions
 const toolServices = {
@@ -16,6 +20,11 @@ const toolServices = {
   'merge-pdf': mergePdfService,
   'split-pdf': splitPdfService,
   'compress-pdf': compressPdfService,
+  'pdf-to-word': pdfToWordService,
+  'pdf-to-excel': pdfToExcelService,
+  'pdf-to-powerpoint': pdfToPowerpointService,
+  'unlock-pdf': unlockPdfService,
+  'protect-pdf': protectPdfService,
 };
 
 // Cleanup uploaded files after processing
@@ -51,7 +60,7 @@ const redisConnection = redisUrl
 const conversionWorker = new Worker(
   'file-processing',
   async (job) => {
-    const { tool, files } = job.data;
+    const { tool, files, options } = job.data;
 
     console.log(`Processing job ${job.id} for tool: ${tool}`);
 
@@ -68,7 +77,7 @@ const conversionWorker = new Worker(
 
     try {
       // Execute the service with the provided files
-      const output = await service(files);
+      const output = await service(files, options);
 
       console.log(`Job ${job.id} completed successfully for tool: ${tool}`);
 

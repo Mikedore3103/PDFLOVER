@@ -23,6 +23,8 @@ const statusContainer = document.getElementById('statusContainer');
 const statusText = document.getElementById('statusText');
 const downloadContainer = document.getElementById('downloadContainer');
 const downloadBtn = document.getElementById('downloadBtn');
+const passwordOptions = document.getElementById('passwordOptions');
+const pdfPassword = document.getElementById('pdfPassword');
 
 // Auth Elements
 const guestInfo = document.getElementById('guestInfo');
@@ -85,6 +87,11 @@ const TOOL_ACCEPT = {
   'compress-pdf': '.pdf',
   'pdf-to-jpg': '.pdf',
   'jpg-to-pdf': '.jpg,.jpeg,.png',
+  'pdf-to-word': '.pdf',
+  'pdf-to-excel': '.pdf',
+  'pdf-to-powerpoint': '.pdf',
+  'unlock-pdf': '.pdf',
+  'protect-pdf': '.pdf'
 };
 
 // Utility Functions
@@ -413,6 +420,9 @@ function selectTool(toolElement) {
   toolTitle.textContent = selectedTool.name;
   toolDesc.textContent = selectedTool.desc;
   fileInput.accept = TOOL_ACCEPT[tool] || '';
+  const needsPassword = tool === 'unlock-pdf' || tool === 'protect-pdf';
+  passwordOptions.classList.toggle('hidden', !needsPassword);
+  pdfPassword.value = '';
 
   openUploadPanel();
   resetUI();
@@ -611,6 +621,9 @@ function uploadFiles() {
 
   const formData = new FormData();
   formData.append('tool', selectedTool.tool);
+  if (selectedTool.tool === 'unlock-pdf' || selectedTool.tool === 'protect-pdf') {
+    formData.append('password', pdfPassword.value);
+  }
   selectedFiles.forEach(file => {
     formData.append('files', file);
   });
@@ -663,7 +676,14 @@ function uploadFiles() {
       openUpgradeModal('Premium Tool Required', response.message);
       resetUI();
     } else {
-      alert('Upload failed. Please try again.');
+      let message = 'Upload failed. Please try again.';
+      try {
+        const response = JSON.parse(xhr.responseText);
+        message = response.message || message;
+      } catch (error) {
+        // Keep the generic message when the server did not return JSON.
+      }
+      alert(message);
       resetUI();
     }
   });

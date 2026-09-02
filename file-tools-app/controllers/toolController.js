@@ -10,6 +10,10 @@ const jpgToPdfService = require('../services/jpgToPdfService');
 const mergePdfService = require('../services/mergePdfService');
 const splitPdfService = require('../services/splitPdfService');
 const compressPdfService = require('../services/compressPdfService');
+const pdfToWordService = require('../services/pdfToWordService');
+const pdfToExcelService = require('../services/pdfToExcelService');
+const pdfToPowerpointService = require('../services/pdfToPowerpointService');
+const { unlockPdfService, protectPdfService } = require('../services/qpdfService');
 const { randomUUID } = require('crypto');
 
 const jobs = new Map();
@@ -20,6 +24,11 @@ const toolServices = {
   'merge-pdf': mergePdfService,
   'split-pdf': splitPdfService,
   'compress-pdf': compressPdfService,
+  'pdf-to-word': pdfToWordService,
+  'pdf-to-excel': pdfToExcelService,
+  'pdf-to-powerpoint': pdfToPowerpointService,
+  'unlock-pdf': unlockPdfService,
+  'protect-pdf': protectPdfService,
 };
 
 function resolveToolName(req, overrideTool) {
@@ -44,7 +53,8 @@ async function processToolRequest(req, res, overrideTool) {
     jobs.set(jobId, { status: 'waiting', tool, createdAt: Date.now() });
 
     // Keep conversion work out of the upload request. The client can poll this job.
-    processJob(jobId, service, files).catch((error) => {
+    const options = { password: req.body?.password || '' };
+    processJob(jobId, service, files, options).catch((error) => {
       console.error(`Job ${jobId} failed:`, error);
     });
 
@@ -68,13 +78,13 @@ async function processToolRequest(req, res, overrideTool) {
   }
 }
 
-async function processJob(jobId, service, files) {
+async function processJob(jobId, service, files, options) {
   const job = jobs.get(jobId);
   if (!job) return;
 
   job.status = 'active';
   try {
-    job.output = await service(files);
+    job.output = await service(files, options);
     job.status = 'completed';
     job.completedAt = new Date().toISOString();
   } catch (error) {
@@ -119,6 +129,26 @@ async function compressPdf(req, res) {
   return processToolRequest(req, res, 'compress-pdf');
 }
 
+async function pdfToWord(req, res) {
+  return processToolRequest(req, res, 'pdf-to-word');
+}
+
+async function pdfToExcel(req, res) {
+  return processToolRequest(req, res, 'pdf-to-excel');
+}
+
+async function pdfToPowerpoint(req, res) {
+  return processToolRequest(req, res, 'pdf-to-powerpoint');
+}
+
+async function unlockPdf(req, res) {
+  return processToolRequest(req, res, 'unlock-pdf');
+}
+
+async function protectPdf(req, res) {
+  return processToolRequest(req, res, 'protect-pdf');
+}
+
 async function getJobStatus(req, res) {
   try {
     const { id } = req.params;
@@ -159,5 +189,10 @@ module.exports = {
   mergePdf,
   splitPdf,
   compressPdf,
+  pdfToWord,
+  pdfToExcel,
+  pdfToPowerpoint,
+  unlockPdf,
+  protectPdf,
   getJobStatus
 };
