@@ -27,5 +27,6 @@ router.post('/protect-pdf', upload.array('files'), toolMiddleware, toolControlle
 
 // Job status endpoint (no auth required for checking status)
 router.get('/job-status/:id', toolController.getJobStatus);
+router.get('/download/:filename', toolController.downloadFile);
 
 module.exports = router;

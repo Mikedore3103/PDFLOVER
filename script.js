@@ -754,7 +754,11 @@ function showDownload(output) {
   const outputUrls = Array.isArray(output) ? output : [output];
   const downloadUrl = outputUrls[0]; // Use first file for download
 
-  downloadBtn.href = downloadUrl.startsWith('http') ? downloadUrl : `${API_URL}${downloadUrl}`;
+  downloadBtn.href = downloadUrl.startsWith('http')
+    ? downloadUrl
+    : `${API_URL}/api/tools/download/${encodeURIComponent(downloadUrl.split('/').pop())}`;
+  downloadBtn.removeAttribute('target');
+  downloadBtn.setAttribute('download', '');
   downloadBtn.textContent = downloadUrl.endsWith('.zip') ? 'Download ZIP' : 'Download File';
 }
 

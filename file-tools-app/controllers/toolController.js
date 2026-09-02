@@ -1,4 +1,5 @@
 const multer = require('multer');
+const path = require('path');
 // const conversionQueue = require('../queues/conversionQueue');
 const { validateFiles } = require('../utils/fileValidator');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
@@ -17,6 +18,7 @@ const { unlockPdfService, protectPdfService } = require('../services/qpdfService
 const { randomUUID } = require('crypto');
 
 const jobs = new Map();
+const conversionsDir = path.join(__dirname, '..', 'conversions');
 
 const toolServices = {
   'pdf-to-jpg': pdfToJpgService,
@@ -182,6 +184,20 @@ async function getJobStatus(req, res) {
   }
 }
 
+function downloadFile(req, res) {
+  const filename = path.basename(req.params.filename || '');
+  if (!filename || filename !== req.params.filename) {
+    return errorResponse(res, 'Invalid download filename.', 400);
+  }
+
+  const filePath = path.join(conversionsDir, filename);
+  return res.download(filePath, filename, (error) => {
+    if (error && !res.headersSent) {
+      return errorResponse(res, error.code === 'ENOENT' ? 'File not found.' : 'Download failed.', error.code === 'ENOENT' ? 404 : 500);
+    }
+  });
+}
+
 module.exports = {
   uploadTool,
   pdfToJpg,
@@ -194,5 +210,6 @@ module.exports = {
   pdfToPowerpoint,
   unlockPdf,
   protectPdf,
-  getJobStatus
+  getJobStatus,
+  downloadFile
 };
