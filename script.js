@@ -637,15 +637,16 @@ function uploadFiles() {
   });
 
   xhr.addEventListener('load', () => {
-    if (xhr.status === 200) {
+    if (xhr.status === 200 || xhr.status === 202) {
       const response = JSON.parse(xhr.responseText);
       if (response.success) {
-        // Synchronous processing - directly show download
-        progressText.textContent = 'Processing completed!';
-        setTimeout(() => {
+        if (response.jobId) {
+          startJobPolling(response.jobId);
+        } else {
+          progressText.textContent = 'Processing completed!';
           hideElement(progressContainer);
           showDownload(response.output);
-        }, 1000);
+        }
       } else {
         // Handle limit reached or other errors
         if (xhr.status === 429) {

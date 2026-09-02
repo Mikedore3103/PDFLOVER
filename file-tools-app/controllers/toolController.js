@@ -10,6 +10,9 @@ const jpgToPdfService = require('../services/jpgToPdfService');
 const mergePdfService = require('../services/mergePdfService');
 const splitPdfService = require('../services/splitPdfService');
 const compressPdfService = require('../services/compressPdfService');
+const { randomUUID } = require('crypto');
+
+const jobs = new Map();
 
 const toolServices = {
   'pdf-to-jpg': pdfToJpgService,
@@ -37,45 +40,21 @@ async function processToolRequest(req, res, overrideTool) {
       return errorResponse(res, `Unsupported tool: ${tool}`, 400);
     }
 
-    try {
-      // Execute the service
-      const output = await service(files);
+    const jobId = randomUUID();
+    jobs.set(jobId, { status: 'waiting', tool, createdAt: Date.now() });
 
-      // Clean up uploaded files
-      await Promise.all(
-        files.map(async (file) => {
-          try {
-            await fs.unlink(file.path);
-          } catch (err) {
-            console.error(`Failed to cleanup: ${file.path}`, err);
-          }
-        })
-      );
+    // Keep conversion work out of the upload request. The client can poll this job.
+    processJob(jobId, service, files).catch((error) => {
+      console.error(`Job ${jobId} failed:`, error);
+    });
 
-      // Prepare response
-      const response = {
-        message: 'File processing completed.',
-        output,
-        userType: req.userType,
-      };
-
-      // Add user info for registered users
-      if (req.user) {
-        response.user = {
-          plan: req.user.plan,
-          dailyUsageCount: req.user.dailyUsageCount,
-          limits: req.userLimits
-        };
-      } else {
-        response.limits = req.userLimits;
-      }
-
-      return successResponse(res, response);
-    } catch (error) {
-      return errorResponse(res, error.message, error.statusCode || 500);
-    }
+    return successResponse(res, {
+      message: 'Upload received. Processing started.',
+      jobId,
+      userType: req.userType,
+      limits: req.userLimits,
+    }, 202);
   } catch (err) {
-    // Note: File cleanup will be handled by the worker after processing
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         // This should be handled by middleware, but fallback here
@@ -86,6 +65,33 @@ async function processToolRequest(req, res, overrideTool) {
     }
 
     return errorResponse(res, err.message || 'Job submission failed.', err.statusCode || 500);
+  }
+}
+
+async function processJob(jobId, service, files) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+
+  job.status = 'active';
+  try {
+    job.output = await service(files);
+    job.status = 'completed';
+    job.completedAt = new Date().toISOString();
+  } catch (error) {
+    job.status = 'failed';
+    job.error = error.message;
+  } finally {
+    await Promise.all(files.map(async (file) => {
+      try {
+        await fs.unlink(file.path);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Failed to cleanup: ${file.path}`, error);
+        }
+      }
+    }));
+
+    setTimeout(() => jobs.delete(jobId), 60 * 60 * 1000).unref();
   }
 }
 
@@ -121,27 +127,23 @@ async function getJobStatus(req, res) {
       return errorResponse(res, 'Job ID is required', 400);
     }
 
-    // Get job from queue
-    const job = await conversionQueue.getJob(id);
+    const job = jobs.get(id);
 
     if (!job) {
       return errorResponse(res, 'Job not found', 404);
     }
 
-    const state = await job.getState();
-
     let response = {
       jobId: id,
-      status: state,
+      status: job.status,
     };
 
-    if (state === 'completed') {
-      const result = job.returnvalue;
-      response.output = result.output;
-      response.tool = result.tool;
-      response.completedAt = result.completedAt;
-    } else if (state === 'failed') {
-      response.error = job.failedReason;
+    if (job.status === 'completed') {
+      response.output = job.output;
+      response.tool = job.tool;
+      response.completedAt = job.completedAt;
+    } else if (job.status === 'failed') {
+      response.error = job.error;
     }
 
     return successResponse(res, response);
