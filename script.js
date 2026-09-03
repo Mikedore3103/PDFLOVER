@@ -56,11 +56,9 @@ const closeModal = document.getElementById('closeModal');
 
 // Upgrade Modal Elements
 const upgradeModal = document.getElementById('upgradeModal');
-const upgradeTitle = document.getElementById('upgradeTitle');
 const upgradeMessage = document.getElementById('upgradeMessage');
-const upgradeLoginBtn = document.getElementById('upgradeLoginBtn');
-const upgradeRegisterBtn = document.getElementById('upgradeRegisterBtn');
-const upgradeProBtn = document.getElementById('upgradeProBtn');
+const plansGrid = document.getElementById('plansGrid');
+const billingMessage = document.getElementById('billingMessage');
 const closeUpgradeModalBtn = document.getElementById('closeUpgradeModal');
 
 // Upgrade Nudge Modal Elements
@@ -208,6 +206,37 @@ async function loadUserProfile() {
   updateAuthUI();
 }
 
+async function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('payment')) return;
+
+  await loadUserProfile();
+  const paymentState = params.get('payment');
+  if (paymentState === 'pending-verification') {
+    const reference = params.get('reference');
+    let verified = false;
+    if (reference && getAuthToken()) {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const response = await fetch(`${API_URL}/api/billing/status/${encodeURIComponent(reference)}`, {
+          headers: { Authorization: `Bearer ${getAuthToken()}` }
+        });
+        const data = await response.json();
+        if (data.status === 'successful') {
+          await loadUserProfile();
+          verified = true;
+          break;
+        }
+        if (['failed', 'cancelled', 'refunded'].includes(data.status)) break;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    alert(verified ? `Your ${currentUser.plan.toUpperCase()} plan is now active.` : 'Payment received. Your plan will update after Flutterwave verification.');
+  } else if (paymentState !== 'successful') {
+    alert(`Payment ${paymentState}. No plan change was made.`);
+  }
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 function logout() {
   removeAuthToken();
   currentUser = null;
@@ -246,21 +275,85 @@ function closeAuthModal() {
   hideElement(authModal);
 }
 
-function openUpgradeModal(title = 'Free Usage Limit Reached', message = 'Create a free account for higher limits or upgrade to Pro for unlimited access.') {
-  upgradeTitle.textContent = title;
-  upgradeMessage.textContent = message;
-  if (currentUser) {
-    hideElement(upgradeLoginBtn);
-    hideElement(upgradeRegisterBtn);
-  } else {
-    showElement(upgradeLoginBtn);
-    showElement(upgradeRegisterBtn);
+async function openUpgradeModal(title = 'Plans & access', message = 'Pick the level that matches how you work. Your current plan is marked below.') {
+  if (!currentUser || !getAuthToken()) {
+    openAuthModal(true);
+    return;
   }
+
+  upgradeMessage.textContent = message;
+  billingMessage.textContent = '';
+  plansGrid.innerHTML = '<p class="plans-loading">Loading plans...</p>';
   showElement(upgradeModal);
+  await loadPlans();
 }
 
 function closeUpgradeModal() {
   hideElement(upgradeModal);
+}
+
+function formatPlanPrice(plan) {
+  try {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency', currency: plan.currency, maximumFractionDigits: 0
+    }).format(plan.price);
+  } catch (error) {
+    return `${plan.currency} ${plan.price}`;
+  }
+}
+
+function planLimitText(plan) {
+  return plan.dailyConversionLimit === -1
+    ? 'Unlimited PDF conversions per day'
+    : `Up to ${plan.dailyConversionLimit} PDF conversions per day`;
+}
+
+async function loadPlans() {
+  try {
+    const response = await fetch(`${API_URL}/api/plans`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Unable to load plans.');
+    plansGrid.innerHTML = data.plans.map(plan => {
+      const isCurrent = currentUser.plan === plan.code;
+      const isRecommended = plan.code === 'premium';
+      const action = plan.code === 'free' ? 'Continue Free' : `Upgrade to ${plan.name}`;
+      return `<article class="plan-card ${isRecommended ? 'recommended' : ''} ${isCurrent ? 'current' : ''}">
+        ${isRecommended ? '<span class="plan-ribbon">Recommended</span>' : ''}
+        <div class="plan-card-top"><span class="plan-kicker">${plan.code}</span>${isCurrent ? '<span class="current-label">Current Plan</span>' : ''}</div>
+        <h3>${plan.name}</h3>
+        <div class="plan-price">${formatPlanPrice(plan)}<span>/day access</span></div>
+        <p>${planLimitText(plan)}</p>
+        <button class="plan-action ${isCurrent ? 'is-current' : ''}" data-plan-code="${plan.code}" ${isCurrent ? 'disabled' : ''}>${isCurrent ? 'Current Plan' : action}</button>
+      </article>`;
+    }).join('');
+    plansGrid.querySelectorAll('[data-plan-code]').forEach(button => {
+      button.addEventListener('click', () => beginCheckout(button.dataset.planCode));
+    });
+  } catch (error) {
+    plansGrid.innerHTML = '<p class="plans-error">Plans could not be loaded. Please try again.</p>';
+  }
+}
+
+async function beginCheckout(planCode) {
+  if (planCode === 'free') {
+    closeUpgradeModal();
+    return;
+  }
+
+  billingMessage.textContent = 'Preparing secure checkout...';
+  try {
+    const response = await fetch(`${API_URL}/api/billing/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+      body: JSON.stringify({ planCode })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Unable to initialize payment.');
+    if (!data.checkoutUrl) throw new Error('Flutterwave did not return a checkout URL.');
+    window.location.assign(data.checkoutUrl);
+  } catch (error) {
+    billingMessage.textContent = error.message || 'Unable to start checkout. Please try again.';
+  }
 }
 
 async function handleAuthSubmit(e) {
@@ -303,8 +396,7 @@ async function handleAuthSubmit(e) {
 
     if (response.ok) {
       setAuthToken(data.token);
-      currentUser = data.user;
-      updateAuthUI();
+      await loadUserProfile();
       closeAuthModal();
       alert(`Welcome${!isLoginMode ? ', your account has been created' : ''}!`);
     } else {
@@ -768,6 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.lucide.createIcons();
   }
   setupPdfWorker();
+  handlePaymentReturn();
   document.querySelectorAll('.toggle-password').forEach((btn) => {
     btn.addEventListener('click', () => {
       const targetId = btn.dataset.target;
@@ -843,18 +936,6 @@ document.addEventListener('DOMContentLoaded', () => {
   closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
   upgradeModal.addEventListener('click', (e) => {
     if (e.target === upgradeModal) closeUpgradeModal();
-  });
-  upgradeLoginBtn.addEventListener('click', () => {
-    closeUpgradeModal();
-    openAuthModal(true);
-  });
-  upgradeRegisterBtn.addEventListener('click', () => {
-    closeUpgradeModal();
-    openAuthModal(false);
-  });
-  upgradeProBtn.addEventListener('click', () => {
-    closeUpgradeModal();
-    alert('Pro upgrade coming soon! Contact support for early access.');
   });
 
   // Upgrade nudge modal

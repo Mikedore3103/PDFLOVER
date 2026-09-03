@@ -5,6 +5,7 @@ const fs = require('fs');
 const toolsRouter = require('./routes/tools');
 const authRouter = require('./routes/auth');
 const plansRouter = require('./routes/plans');
+const billingRouter = require('./routes/billing');
 const { initializePlans } = require('./services/planService');
 const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
@@ -38,7 +39,11 @@ const conversionsDir = path.join(__dirname, 'conversions');
 });
 
 // Middleware
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer.toString('utf8');
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // CORS headers for frontend
@@ -65,6 +70,7 @@ app.get('/api', (req, res) => {
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/plans', plansRouter);
+app.use('/api/billing', billingRouter);
 app.use('/api/tools', toolsRouter);
 
 app.use((err, req, res, next) => {

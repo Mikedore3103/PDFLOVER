@@ -214,21 +214,21 @@
 
   <!-- Upgrade Modal -->
   <div id="upgradeModal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content pricing-modal">
       <div class="modal-header">
-        <h2>Upgrade Required</h2>
+        <div>
+          <span class="eyebrow">Plans & access</span>
+          <h2>Choose your workspace</h2>
+        </div>
         <button id="closeUpgradeModal" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <div class="upgrade-content">
-          <div class="upgrade-icon">🚀</div>
-          <h3 id="upgradeTitle">Free Usage Limit Reached</h3>
-          <p id="upgradeMessage">Create a free account for higher limits or upgrade to Pro for unlimited access.</p>
-          <div class="upgrade-options">
-            <button id="upgradeLoginBtn" class="upgrade-btn">Login</button>
-            <button id="upgradeRegisterBtn" class="upgrade-btn primary">Create Free Account</button>
-            <button id="upgradeProBtn" class="upgrade-btn pro">Upgrade to Pro</button>
+          <p id="upgradeMessage">Pick the level that matches how you work. Your current plan is marked below.</p>
+          <div id="plansGrid" class="plans-grid" aria-live="polite">
+            <p class="plans-loading">Loading plans...</p>
           </div>
+          <p id="billingMessage" class="billing-message" role="status"></p>
         </div>
       </div>
     </div>

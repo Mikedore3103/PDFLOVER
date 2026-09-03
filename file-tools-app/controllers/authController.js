@@ -171,11 +171,17 @@ async function getProfile(req, res) {
       return errorResponse(res, 'User not found', 404);
     }
 
+    const assignedPlan = await Plan.findOne({ _id: user.currentPlan, active: true }).lean();
+    const subscriptionExpired = user.subscriptionExpiresAt && user.subscriptionExpiresAt <= new Date();
+    const paidSubscriptionActive = assignedPlan && assignedPlan.code !== 'free'
+      && user.subscriptionStatus === 'active' && !subscriptionExpired;
+    const effectivePlan = paidSubscriptionActive ? assignedPlan : await Plan.findOne({ code: 'free', active: true }).lean();
+
     return successResponse(res, {
       user: {
         id: user._id,
         email: user.email,
-        plan: user.plan,
+        plan: effectivePlan?.code || 'free',
         dailyUsageCount: user.dailyUsageCount,
         lastUsageReset: user.lastUsageReset,
         currentPlan: user.currentPlan,

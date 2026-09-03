@@ -1,0 +1,208 @@
+const crypto = require('crypto');
+const PaymentTransaction = require('../models/PaymentTransaction');
+const Subscription = require('../models/Subscription');
+const Plan = require('../models/Plan');
+const User = require('../models/User');
+const WebhookEvent = require('../models/WebhookEvent');
+
+const FLW_BASE_URL = process.env.FLW_BASE_URL || 'https://api.flutterwave.com';
+const FLW_SECRET_KEY = process.env.FLW_SECRET_KEY;
+const FLW_SECRET_HASH = process.env.FLW_SECRET_HASH;
+const SUBSCRIPTION_DAYS = Number(process.env.FLW_SUBSCRIPTION_DAYS || 30);
+
+function assertConfigured() {
+  if (!FLW_SECRET_KEY || !FLW_SECRET_HASH || !process.env.FLW_REDIRECT_URL) {
+    const error = new Error('Flutterwave payments are not configured on the server.');
+    error.statusCode = 503;
+    throw error;
+  }
+}
+
+async function flutterwaveRequest(path, options = {}) {
+  assertConfigured();
+  const response = await fetch(`${FLW_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${FLW_SECRET_KEY}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json();
+  if (!response.ok || data.status !== 'success') {
+    const error = new Error(data.message || 'Flutterwave request failed.');
+    error.statusCode = response.status >= 500 ? 502 : 400;
+    throw error;
+  }
+  return data;
+}
+
+function createReference(userId, planCode) {
+  return `pdflover-${planCode}-${userId}-${crypto.randomUUID()}`;
+}
+
+async function initializePayment(user, plan) {
+  if (plan.code === 'free' || plan.price <= 0) {
+    const error = new Error('Only paid plans can start a payment.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const reference = createReference(user._id.toString(), plan.code);
+  const transaction = await PaymentTransaction.create({
+    user: user._id,
+    plan: plan._id,
+    amount: plan.price,
+    currency: plan.currency,
+    provider: 'flutterwave',
+    reference,
+    status: 'pending'
+  });
+
+  try {
+    const result = await flutterwaveRequest('/v3/payments', {
+      method: 'POST',
+      headers: { 'X-Idempotency-Key': reference },
+      body: JSON.stringify({
+        tx_ref: reference,
+        amount: plan.price,
+        currency: plan.currency,
+        redirect_url: process.env.FLW_REDIRECT_URL,
+        payment_options: process.env.FLW_PAYMENT_OPTIONS || 'card,banktransfer,ussd',
+        customer: {
+          email: user.email,
+          name: user.email
+        },
+        customizations: {
+          title: process.env.FLW_CHECKOUT_TITLE || 'PDF Lover',
+          description: `${plan.name} subscription`
+        },
+        meta: {
+          userId: user._id.toString(),
+          planCode: plan.code,
+          transactionId: transaction._id.toString()
+        }
+      })
+    });
+
+    if (!result.data?.link) {
+      throw new Error('Flutterwave did not return a checkout link.');
+    }
+
+    await PaymentTransaction.updateOne(
+      { _id: transaction._id },
+      { $set: { providerReference: result.data } }
+    );
+    return { reference, link: result.data.link };
+  } catch (error) {
+    await PaymentTransaction.updateOne(
+      { _id: transaction._id },
+      { $set: { status: 'failed', providerReference: { message: error.message } } }
+    );
+    throw error;
+  }
+}
+
+function validSignature(rawBody, signature) {
+  if (!rawBody || !signature || !FLW_SECRET_HASH) return false;
+  const expected = crypto.createHmac('sha256', FLW_SECRET_HASH).update(rawBody).digest('base64');
+  const expectedBuffer = Buffer.from(expected);
+  const receivedBuffer = Buffer.from(signature);
+  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+}
+
+async function verifyTransaction(transactionId) {
+  return flutterwaveRequest(`/v3/transactions/${encodeURIComponent(transactionId)}/verify`, { method: 'GET' });
+}
+
+function amountsMatch(actual, expected) {
+  return Number(actual) === Number(expected);
+}
+
+async function processWebhook(payload) {
+  const data = payload.data || {};
+  const eventId = payload.id || payload.webhook_id || data.id;
+  if (!eventId) {
+    const error = new Error('Webhook event ID is missing.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const existingEvent = await WebhookEvent.findOne({ provider: 'flutterwave', eventId });
+  if (existingEvent?.processedAt) return { duplicate: true };
+  if (!existingEvent) {
+    await WebhookEvent.create({ provider: 'flutterwave', eventId, eventType: payload.type, payload });
+  }
+
+  const reference = data.tx_ref || data.reference;
+  const transactionId = data.id;
+  const pending = await PaymentTransaction.findOne({ provider: 'flutterwave', reference }).populate('plan');
+  if (!pending) throw new Error('Payment transaction not found.');
+  if (pending.status === 'successful') {
+    await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
+    return { duplicate: true };
+  }
+
+  const user = await User.findById(pending.user);
+  if (!user) throw new Error('Payment user not found.');
+
+  const verified = await verifyTransaction(transactionId);
+  const verifiedData = verified.data || {};
+  const success = ['successful', 'succeeded'].includes(String(verifiedData.status).toLowerCase());
+  const valid = success
+    && verifiedData.tx_ref === pending.reference
+    && amountsMatch(verifiedData.amount, pending.amount)
+    && String(verifiedData.currency).toUpperCase() === pending.currency
+    && (!verifiedData.customer?.email || verifiedData.customer.email.toLowerCase() === user.email.toLowerCase());
+
+  if (!valid) {
+    const status = String(verifiedData.status || 'failed').toLowerCase();
+    pending.status = ['cancelled', 'refunded'].includes(status) ? status : 'failed';
+    await pending.save();
+    await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
+    return { valid: false };
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
+
+  const claimed = await PaymentTransaction.findOneAndUpdate(
+    { _id: pending._id, status: { $ne: 'successful' } },
+    { $set: { status: 'successful', paidAt: now, providerReference: verifiedData } },
+    { new: true }
+  ).populate('plan');
+  if (!claimed) {
+    await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
+    return { duplicate: true };
+  }
+
+  await Subscription.updateMany(
+    { user: user._id, status: { $in: ['active', 'pending'] } },
+    { $set: { status: 'cancelled' } }
+  );
+  await Subscription.create({
+    user: user._id,
+    plan: pending.plan._id,
+    status: 'active',
+    startedAt: now,
+    expiresAt,
+    customerReference: verifiedData.customer?.id,
+    subscriptionReference: pending.reference,
+    lastPaymentAt: now
+  });
+
+  user.plan = pending.plan.code;
+  user.currentPlan = pending.plan._id;
+  user.subscriptionStatus = 'active';
+  user.subscriptionStartedAt = now;
+  user.subscriptionExpiresAt = expiresAt;
+  user.paymentCustomerReference = verifiedData.customer?.id || null;
+  user.paymentSubscriptionReference = pending.reference;
+  user.lastSuccessfulPaymentAt = now;
+  await user.save();
+
+  await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: now } });
+  return { valid: true };
+}
+
+module.exports = { initializePayment, validSignature, processWebhook };

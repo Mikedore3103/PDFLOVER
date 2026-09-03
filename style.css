@@ -888,6 +888,152 @@ body {
   box-shadow: var(--shadow-hover);
 }
 
+.pricing-modal {
+  width: min(94%, 980px);
+  max-width: 980px;
+}
+
+.pricing-modal .modal-header {
+  padding: 1.25rem 1.5rem;
+}
+
+.pricing-modal .modal-header h2 {
+  margin-top: 0.25rem;
+}
+
+.eyebrow,
+.plan-kicker {
+  color: var(--brand);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  text-align: left;
+}
+
+.plan-card {
+  position: relative;
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.plan-card.recommended {
+  border: 2px solid var(--brand);
+  box-shadow: 0 18px 36px rgba(169, 25, 34, 0.14);
+}
+
+.plan-card.current {
+  background: var(--brand-soft);
+}
+
+.plan-ribbon {
+  position: absolute;
+  top: -0.7rem;
+  right: 1rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.plan-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.current-label {
+  color: var(--brand-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.plan-card h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.35rem;
+}
+
+.plan-price {
+  color: var(--text);
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.plan-price span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.plan-card p {
+  min-height: 2.8rem;
+  margin: 0.8rem 0 1.25rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.plan-action {
+  width: 100%;
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--brand);
+  border-radius: 6px;
+  background: var(--brand);
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plan-action:hover:not(:disabled) {
+  background: var(--brand-dark);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.plan-action.is-current,
+.plan-action:disabled {
+  border-color: var(--line);
+  background: #eee7e4;
+  color: var(--muted);
+  cursor: default;
+}
+
+.billing-message,
+.plans-loading,
+.plans-error {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-card {
+    min-height: 0;
+  }
+}
+
 /* Premium tool indicator */
 .tool-card.premium::after {
   content: "PRO";
