@@ -6,6 +6,7 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Plan = require('../models/Plan');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
 // JWT configuration
@@ -87,10 +88,16 @@ async function register(req, res) {
     }
 
     // Create new user
+    const freePlan = await Plan.findOne({ code: 'free', active: true });
+    if (!freePlan) {
+      return errorResponse(res, 'FREE plan is not configured', 503);
+    }
+
     const user = new User({
       email,
       password,
-      plan: 'free' // Default to free plan
+      plan: 'free',
+      currentPlan: freePlan._id
     });
 
     await user.save();
@@ -171,43 +178,12 @@ async function getProfile(req, res) {
         plan: user.plan,
         dailyUsageCount: user.dailyUsageCount,
         lastUsageReset: user.lastUsageReset,
+        currentPlan: user.currentPlan,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionStartedAt: user.subscriptionStartedAt,
+        subscriptionExpiresAt: user.subscriptionExpiresAt,
+        lastSuccessfulPaymentAt: user.lastSuccessfulPaymentAt,
         createdAt: user.createdAt
-      }
-    });
-  } catch (error) {
-    return errorResponse(res, error.message, 500);
-  }
-}
-
-/**
- * Update user plan (for admin or payment processing)
- */
-async function updatePlan(req, res) {
-  try {
-    const { plan } = req.body;
-
-    if (!['free', 'pro'].includes(plan)) {
-      return errorResponse(res, 'Invalid plan type', 400);
-    }
-
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return errorResponse(res, 'User not found', 404);
-    }
-
-    user.plan = plan;
-    await user.save();
-
-    // Generate new token with updated plan
-    const token = generateToken(user);
-
-    return successResponse(res, {
-      message: 'Plan updated successfully',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        plan: user.plan
       }
     });
   } catch (error) {
@@ -303,7 +279,6 @@ module.exports = {
   register,
   login,
   getProfile,
-  updatePlan,
   sendVerification,
   verifyEmail
 };

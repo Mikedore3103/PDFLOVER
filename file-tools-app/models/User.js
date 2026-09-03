@@ -22,8 +22,38 @@ const userSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
-    enum: ['free', 'pro'],
+    enum: ['free', 'pro', 'premium'],
     default: 'free'
+  },
+  currentPlan: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plan',
+    default: null
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ['inactive', 'pending', 'active', 'past_due', 'cancelled', 'expired'],
+    default: 'inactive'
+  },
+  subscriptionStartedAt: {
+    type: Date,
+    default: null
+  },
+  subscriptionExpiresAt: {
+    type: Date,
+    default: null
+  },
+  paymentCustomerReference: {
+    type: String,
+    default: null
+  },
+  paymentSubscriptionReference: {
+    type: String,
+    default: null
+  },
+  lastSuccessfulPaymentAt: {
+    type: Date,
+    default: null
   },
   dailyUsageCount: {
     type: Number,
@@ -72,17 +102,6 @@ userSchema.methods.resetDailyUsage = function() {
   this.dailyUsageCount = 0;
   this.lastUsageReset = Date.now();
   return this.save();
-};
-
-// Instance method to check if daily limit exceeded
-userSchema.methods.isLimitExceeded = function() {
-  const limits = {
-    free: 20,
-    pro: -1 // unlimited
-  };
-
-  if (limits[this.plan] === -1) return false;
-  return this.dailyUsageCount >= limits[this.plan];
 };
 
 // Static method to find user by email

@@ -7,24 +7,18 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Plan = require('../models/Plan');
 const { errorResponse } = require('../utils/responseHandler');
 
 // JWT secret (should be in environment variables in production)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// User limits by plan
-const USER_LIMITS = {
-  free: {
-    maxConversions: 20,
-    maxFileSize: 50 * 1024 * 1024, // 50MB
-    resetInterval: 24 * 60 * 60 * 1000 // 24 hours
-  },
-  pro: {
-    maxConversions: -1, // unlimited
-    maxFileSize: 500 * 1024 * 1024, // 500MB
-    resetInterval: 24 * 60 * 60 * 1000
-  }
+const PLAN_FILE_LIMITS = {
+  free: 50 * 1024 * 1024,
+  pro: 500 * 1024 * 1024,
+  premium: 500 * 1024 * 1024
 };
+const RESET_INTERVAL = 24 * 60 * 60 * 1000;
 
 // Premium tools that require Pro plan
 const PREMIUM_TOOLS = new Set([
@@ -40,9 +34,9 @@ const PREMIUM_TOOLS = new Set([
  */
 function resetDailyUsageIfNeeded(user) {
   const now = Date.now();
-  const timeSinceReset = now - user.lastUsageReset;
+  const timeSinceReset = now - new Date(user.lastUsageReset).getTime();
 
-  if (timeSinceReset >= USER_LIMITS[user.plan].resetInterval) {
+  if (timeSinceReset >= RESET_INTERVAL) {
     user.dailyUsageCount = 0;
     user.lastUsageReset = now;
   }
@@ -55,15 +49,8 @@ function resetDailyUsageIfNeeded(user) {
  * @param {Object} user - User document
  * @returns {boolean} True if limit exceeded
  */
-function isUserLimitExceeded(user) {
-  const limits = USER_LIMITS[user.plan];
-
-  // Pro users have unlimited conversions
-  if (limits.maxConversions === -1) {
-    return false;
-  }
-
-  return user.dailyUsageCount >= limits.maxConversions;
+function isUserLimitExceeded(user, plan) {
+  return plan.dailyConversionLimit !== -1 && user.dailyUsageCount >= plan.dailyConversionLimit;
 }
 
 /**
@@ -73,7 +60,7 @@ function isUserLimitExceeded(user) {
  * @returns {boolean} True if tool is premium and user doesn't have access
  */
 function isPremiumToolRestricted(toolName, userPlan) {
-  return PREMIUM_TOOLS.has(toolName) && userPlan !== 'pro';
+  return PREMIUM_TOOLS.has(toolName) && !['pro', 'premium'].includes(userPlan);
 }
 
 /**
@@ -83,7 +70,7 @@ function isPremiumToolRestricted(toolName, userPlan) {
  * @throws {Error} If any file exceeds size limit
  */
 function validateUserFileSize(files, userPlan) {
-  const maxSize = USER_LIMITS[userPlan].maxFileSize;
+  const maxSize = PLAN_FILE_LIMITS[userPlan] || PLAN_FILE_LIMITS.free;
 
   for (const file of files) {
     if (file.size > maxSize) {
@@ -131,18 +118,33 @@ async function usageLimiter(req, res, next) {
       return errorResponse(res, 'User not found', 401);
     }
 
+    // Resolve plan and limits from MongoDB, never from the JWT or request body.
+    const plan = await Plan.findOne({ _id: user.currentPlan, active: true }).lean()
+      || await Plan.findOne({ code: user.plan, active: true }).lean()
+      || await Plan.findOne({ code: 'free', active: true }).lean();
+    if (!plan) {
+      return errorResponse(res, 'Subscription plans are not configured', 503);
+    }
+
+    let effectivePlan = plan;
+    const paidPlan = !['free'].includes(plan.code);
+    const subscriptionExpired = user.subscriptionExpiresAt && user.subscriptionExpiresAt <= new Date();
+    if (paidPlan && (user.subscriptionStatus !== 'active' || subscriptionExpired)) {
+      effectivePlan = await Plan.findOne({ code: 'free', active: true }).lean();
+    }
+
     // Reset daily usage if needed
     resetDailyUsageIfNeeded(user);
 
     // Check if tool is premium-only
     const toolName = req.body?.tool || req.params?.tool || '';
-    if (isPremiumToolRestricted(toolName, user.plan)) {
+    if (isPremiumToolRestricted(toolName, effectivePlan.code)) {
       return errorResponse(res, 'This tool requires a Pro plan.', 403);
     }
 
     // Check conversion limit
-    if (isUserLimitExceeded(user)) {
-      const message = user.plan === 'free'
+    if (isUserLimitExceeded(user, effectivePlan)) {
+      const message = effectivePlan.code === 'free'
         ? 'Daily conversion limit reached. Upgrade to Pro for unlimited access.'
         : 'Conversion limit reached. Please try again tomorrow.';
       return errorResponse(res, message, 429);
@@ -150,7 +152,7 @@ async function usageLimiter(req, res, next) {
 
     // Validate file sizes
     if (req.files && req.files.length > 0) {
-      validateUserFileSize(req.files, user.plan);
+      validateUserFileSize(req.files, effectivePlan.code);
     }
 
     // Increment usage counter
@@ -160,7 +162,12 @@ async function usageLimiter(req, res, next) {
     // Add user info to request
     req.user = user;
     req.userType = 'registered';
-    req.userLimits = USER_LIMITS[user.plan];
+    req.userLimits = {
+      maxConversions: effectivePlan.dailyConversionLimit,
+      maxFileSize: PLAN_FILE_LIMITS[effectivePlan.code] || PLAN_FILE_LIMITS.free,
+      resetInterval: RESET_INTERVAL
+    };
+    req.plan = effectivePlan;
 
     next();
   } catch (error) {
@@ -196,7 +203,9 @@ async function requirePro(req, res, next) {
     }
 
     const user = await User.findById(tokenPayload.userId);
-    if (!user || user.plan !== 'pro') {
+    const plan = user ? await Plan.findOne({ _id: user.currentPlan, active: true }).lean() : null;
+    const expired = user?.subscriptionExpiresAt && user.subscriptionExpiresAt <= new Date();
+    if (!user || !plan || !['pro', 'premium'].includes(plan.code) || user.subscriptionStatus !== 'active' || expired) {
       return errorResponse(res, 'Pro plan required', 403);
     }
 
@@ -211,6 +220,6 @@ module.exports = {
   usageLimiter,
   requireAuth,
   requirePro,
-  USER_LIMITS,
+  PLAN_FILE_LIMITS,
   PREMIUM_TOOLS
 };

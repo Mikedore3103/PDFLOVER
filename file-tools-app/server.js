@@ -4,13 +4,19 @@ const path = require('path');
 const fs = require('fs');
 const toolsRouter = require('./routes/tools');
 const authRouter = require('./routes/auth');
+const plansRouter = require('./routes/plans');
+const { initializePlans } = require('./services/planService');
 const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
 
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Mikedore:Justice6799@cluster0.isui1y2.mongodb.net/file-tools-app';
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    await initializePlans();
+    console.log('Subscription plans initialized');
+  })
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Start the conversion worker
@@ -58,6 +64,7 @@ app.get('/api', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/plans', plansRouter);
 app.use('/api/tools', toolsRouter);
 
 app.use((err, req, res, next) => {
