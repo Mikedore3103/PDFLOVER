@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Plan = require('../models/Plan');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const AdminAuditLog = require('../models/AdminAuditLog');
+const Subscription = require('../models/Subscription');
+const crypto = require('crypto');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
 function toPositiveInteger(value, fallback, maximum) {
@@ -55,12 +57,60 @@ async function updateUserPlan(req, res) {
 
     const previousPlan = user.plan;
     const now = new Date();
+    const manualDays = Number(process.env.MANUAL_SUBSCRIPTION_DAYS || 30);
+    const expiresAt = plan.code === 'free'
+      ? null
+      : (req.body.expiresAt ? new Date(req.body.expiresAt) : new Date(now.getTime() + manualDays * 24 * 60 * 60 * 1000));
+    if (expiresAt && Number.isNaN(expiresAt.getTime())) {
+      return errorResponse(res, 'The supplied expiry date is invalid.', 400);
+    }
+    const manualAmount = Number(req.body.amount ?? plan.price);
+    if (plan.code !== 'free' && (!Number.isFinite(manualAmount) || manualAmount < 0)) {
+      return errorResponse(res, 'The cash payment amount must be a valid positive number.', 400);
+    }
+
+    // A manual grant replaces any current paid subscription. It is deliberately
+    // recorded separately from Flutterwave so cash/offline payments remain
+    // traceable without pretending they were gateway-approved.
+    await Subscription.updateMany(
+      { user: user._id, status: { $in: ['active', 'pending'] } },
+      { $set: { status: 'cancelled' } }
+    );
+
     user.plan = plan.code;
     user.currentPlan = plan._id;
     user.subscriptionStatus = plan.code === 'free' ? 'inactive' : 'active';
     user.subscriptionStartedAt = plan.code === 'free' ? null : now;
-    user.subscriptionExpiresAt = plan.code === 'free' ? null : (req.body.expiresAt ? new Date(req.body.expiresAt) : null);
+    user.subscriptionExpiresAt = expiresAt;
     await user.save();
+
+    let payment = null;
+    if (plan.code !== 'free') {
+      const reference = `manual-${plan.code}-${user._id}-${crypto.randomUUID()}`;
+      payment = await PaymentTransaction.create({
+        user: user._id,
+        plan: plan._id,
+        amount: manualAmount,
+        currency: plan.currency,
+        provider: 'manual-cash',
+        reference,
+        status: 'successful',
+        paidAt: now,
+        providerReference: { notes: String(req.body.notes || '').trim(), grantedBy: req.userId.toString() }
+      });
+      await Subscription.create({
+        user: user._id,
+        plan: plan._id,
+        status: 'active',
+        startedAt: now,
+        expiresAt,
+        subscriptionReference: reference,
+        lastPaymentAt: now
+      });
+      user.lastSuccessfulPaymentAt = now;
+      user.paymentSubscriptionReference = reference;
+      await user.save();
+    }
 
     await AdminAuditLog.create({
       admin: req.userId,
@@ -68,7 +118,13 @@ async function updateUserPlan(req, res) {
       targetUser: user._id,
       previousPlan,
       newPlan: plan.code,
-      metadata: { expiresAt: user.subscriptionExpiresAt }
+      metadata: {
+        paymentMethod: plan.code === 'free' ? 'manual-revocation' : 'cash',
+        paymentId: payment?._id,
+        amount: payment?.amount,
+        expiresAt: user.subscriptionExpiresAt,
+        notes: String(req.body.notes || '').trim()
+      }
     });
 
     return successResponse(res, { message: 'User plan updated.', user: {

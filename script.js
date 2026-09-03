@@ -53,6 +53,9 @@ const adminTotalUsers = document.getElementById('adminTotalUsers');
 const adminActiveSubscriptions = document.getElementById('adminActiveSubscriptions');
 const adminSuccessfulPayments = document.getElementById('adminSuccessfulPayments');
 const adminRecentUsers = document.getElementById('adminRecentUsers');
+const adminUserSearchForm = document.getElementById('adminUserSearchForm');
+const adminUserSearch = document.getElementById('adminUserSearch');
+const adminUsers = document.getElementById('adminUsers');
 
 // Modal Elements
 const authModal = document.getElementById('authModal');
@@ -227,9 +230,55 @@ async function loadAdminOverview() {
       `<li>${escapeHtml(user.email)} — ${escapeHtml(user.plan)} / ${escapeHtml(user.subscriptionStatus)}</li>`
     ).join('') || '<li>No users yet.</li>';
     showElement(adminDashboard);
+    loadAdminUsers();
   } catch (error) {
     console.error('Failed to load admin overview:', error);
     hideElement(adminDashboard);
+  }
+}
+
+async function loadAdminUsers(search = '') {
+  try {
+    adminUsers.textContent = 'Loading accounts…';
+    const query = new URLSearchParams({ limit: '25' });
+    if (search) query.set('search', search);
+    const response = await fetch(`${API_URL}/api/admin/users?${query}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Unable to load accounts.');
+    adminUsers.innerHTML = data.users.map(user => `<article class="admin-user">
+      <div><div class="admin-user-email">${escapeHtml(user.email)}</div><div class="admin-user-meta">${escapeHtml(user.plan)} · ${escapeHtml(user.subscriptionStatus)}</div></div>
+      <div class="admin-user-actions">
+        <button class="admin-grant" data-user-id="${user._id}" data-plan="pro">Grant Pro</button>
+        <button class="admin-grant premium" data-user-id="${user._id}" data-plan="premium">Grant Premium</button>
+      </div>
+    </article>`).join('') || 'No matching accounts found.';
+    adminUsers.querySelectorAll('[data-user-id]').forEach(button => {
+      button.addEventListener('click', () => grantManualAccess(button.dataset.userId, button.dataset.plan));
+    });
+  } catch (error) {
+    adminUsers.textContent = error.message || 'Unable to load accounts.';
+  }
+}
+
+async function grantManualAccess(userId, planCode) {
+  const amount = window.prompt(`Cash amount received for ${planCode.toUpperCase()} (leave blank for the plan price):`, '');
+  if (amount === null) return;
+  const notes = window.prompt('Optional payment note or receipt reference:', '') ?? '';
+  if (!window.confirm(`Grant ${planCode.toUpperCase()} access for 30 days?`)) return;
+  try {
+    const response = await fetch(`${API_URL}/api/admin/users/${encodeURIComponent(userId)}/plan`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+      body: JSON.stringify({ planCode, ...(amount.trim() ? { amount } : {}), notes })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Unable to grant access.');
+    alert(`${data.user.email} now has ${data.user.plan.toUpperCase()} access.`);
+    await loadAdminOverview();
+  } catch (error) {
+    alert(error.message || 'Unable to grant access.');
   }
 }
 
@@ -1051,6 +1100,13 @@ document.addEventListener('DOMContentLoaded', () => {
     nudgeUpgradeBtn.addEventListener('click', () => {
       hideElement(upgradeNudgeModal);
       openUpgradeModal('Upgrade to Pro', 'Unlock bigger files, higher limits, and priority processing.');
+    });
+  }
+
+  if (adminUserSearchForm) {
+    adminUserSearchForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      loadAdminUsers(adminUserSearch.value.trim());
     });
   }
 
