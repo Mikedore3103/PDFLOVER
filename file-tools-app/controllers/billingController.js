@@ -33,12 +33,15 @@ async function prepareCheckout(req, res) {
 
 async function flutterwaveWebhook(req, res) {
   const signature = req.headers['flutterwave-signature'];
+  console.log('Flutterwave webhook received.');
   if (!validSignature(req.rawBody, signature)) {
+    console.warn('Flutterwave webhook rejected: invalid or missing signature.');
     return res.status(401).send('Invalid signature');
   }
 
   try {
     await processWebhook(req.body);
+    console.log('Flutterwave webhook processed successfully.');
     return res.sendStatus(200);
   } catch (error) {
     console.error('Flutterwave webhook processing failed:', error.message);
