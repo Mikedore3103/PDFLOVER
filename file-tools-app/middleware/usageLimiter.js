@@ -232,6 +232,21 @@ function requireAuth(req, res, next) {
   next();
 }
 
+async function requireAdmin(req, res, next) {
+  const tokenPayload = getUserFromToken(req);
+  if (!tokenPayload) return errorResponse(res, 'Authentication required', 401);
+
+  try {
+    const user = await User.findById(tokenPayload.userId).select('_id email role');
+    if (!user || user.role !== 'admin') return errorResponse(res, 'Administrator access required', 403);
+    req.user = user;
+    req.userId = user._id;
+    return next();
+  } catch (error) {
+    return errorResponse(res, 'Unable to verify administrator access', 500);
+  }
+}
+
 /**
  * Middleware to require Pro plan for certain routes
  */
@@ -260,6 +275,7 @@ async function requirePro(req, res, next) {
 module.exports = {
   usageLimiter,
   requireAuth,
+  requireAdmin,
   requirePro,
   PLAN_FILE_LIMITS,
   PREMIUM_TOOLS

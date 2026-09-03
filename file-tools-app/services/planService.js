@@ -60,6 +60,13 @@ async function initializePlans() {
     }
   );
 
+  if (process.env.ADMIN_EMAIL) {
+    await User.updateOne(
+      { email: process.env.ADMIN_EMAIL.toLowerCase().trim() },
+      { $set: { role: 'admin' } }
+    );
+  }
+
   await User.updateMany(
     { subscriptionStatus: 'inactive', $or: [{ currentPlan: null }, { currentPlan: { $exists: false } }] },
     { $set: { plan: 'free', currentPlan: plans.free._id } }
