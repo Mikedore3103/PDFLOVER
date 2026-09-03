@@ -120,6 +120,18 @@ function amountsMatch(actual, expected) {
   return Number(actual) === Number(expected);
 }
 
+function paymentValidationFailure(verifiedData, pending, user) {
+  const status = String(verifiedData.status || '').toLowerCase();
+  if (!['successful', 'succeeded'].includes(status)) return `Flutterwave reported status: ${status || 'missing'}`;
+  if (verifiedData.tx_ref !== pending.reference) return 'Transaction reference did not match the checkout reference.';
+  if (!amountsMatch(verifiedData.amount, pending.amount)) return `Amount mismatch: expected ${pending.amount}, received ${verifiedData.amount}.`;
+  if (String(verifiedData.currency || '').toUpperCase() !== pending.currency) return `Currency mismatch: expected ${pending.currency}, received ${verifiedData.currency}.`;
+  if (verifiedData.customer?.email && verifiedData.customer.email.toLowerCase() !== user.email.toLowerCase()) {
+    return 'Customer email did not match the account that started checkout.';
+  }
+  return null;
+}
+
 async function processWebhook(payload) {
   const data = payload.data || {};
   const eventId = payload.id || payload.webhook_id || data.id;
@@ -149,17 +161,25 @@ async function processWebhook(payload) {
 
   const verified = await verifyTransaction(transactionId);
   const verifiedData = verified.data || {};
-  const success = ['successful', 'succeeded'].includes(String(verifiedData.status).toLowerCase());
-  const valid = success
-    && verifiedData.tx_ref === pending.reference
-    && amountsMatch(verifiedData.amount, pending.amount)
-    && String(verifiedData.currency).toUpperCase() === pending.currency
-    && (!verifiedData.customer?.email || verifiedData.customer.email.toLowerCase() === user.email.toLowerCase());
+  const failureReason = paymentValidationFailure(verifiedData, pending, user);
+  const valid = !failureReason;
 
   if (!valid) {
     const status = String(verifiedData.status || 'failed').toLowerCase();
     pending.status = ['cancelled', 'refunded'].includes(status) ? status : 'failed';
+    pending.providerReference = {
+      ...((pending.providerReference && typeof pending.providerReference === 'object') ? pending.providerReference : {}),
+      verification: {
+        transactionId: verifiedData.id,
+        txRef: verifiedData.tx_ref,
+        status: verifiedData.status,
+        amount: verifiedData.amount,
+        currency: verifiedData.currency
+      },
+      failureReason
+    };
     await pending.save();
+    console.warn(`Flutterwave payment ${pending.reference} failed validation: ${failureReason}`);
     await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
     return { valid: false };
   }
