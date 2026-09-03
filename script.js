@@ -213,12 +213,13 @@ function renderSubscriptionDashboard() {
   subscriptionStarted.textContent = formatDate(subscription.startedAt);
   subscriptionExpires.textContent = formatDate(subscription.expiresAt);
   lastPayment.textContent = subscription.lastPayment
-    ? `${subscription.lastPayment.currency} ${subscription.lastPayment.amount} on ${formatDate(subscription.lastPayment.paidAt)}`
+    ? `${subscription.lastPayment.currency} ${subscription.lastPayment.amount} (${subscription.lastPayment.status}) on ${formatDate(subscription.lastPayment.paidAt || subscription.lastPayment.createdAt)}`
     : 'Not available';
 
   subscriptionNotice.textContent = '';
   hideElement(subscriptionNotice);
-  if (['expired', 'cancelled', 'past_due'].includes(subscription.status)) {
+  if (['expired', 'cancelled', 'past_due'].includes(subscription.status)
+      || ['failed', 'cancelled'].includes(subscription.lastPayment?.status)) {
     subscriptionNotice.textContent = 'Your subscription is not active. Choose a paid plan to restore higher conversion limits.';
     showElement(subscriptionNotice);
   }
@@ -551,7 +552,7 @@ function selectTool(toolElement) {
 
   // Check if premium tool and user doesn't have access
   if (PREMIUM_TOOLS.includes(tool)) {
-    const hasAccess = currentUser && currentUser.plan === 'pro';
+    const hasAccess = currentUser && ['pro', 'premium'].includes(currentUser.plan);
     if (!hasAccess) {
       openUpgradeModal(
         'Premium Tool',
@@ -799,7 +800,7 @@ function uploadFiles() {
       const response = JSON.parse(xhr.responseText);
       if (response.success) {
         if (response.jobId) {
-          startJobPolling(response.jobId);
+          startJobPolling(response.jobId, response.jobToken);
         } else {
           progressText.textContent = 'Processing completed!';
           hideElement(progressContainer);
@@ -854,14 +855,14 @@ function uploadFiles() {
   xhr.send(formData);
 }
 
-function startJobPolling(jobId) {
+function startJobPolling(jobId, jobToken) {
   hideElement(progressContainer);
   showElement(statusContainer);
   statusText.textContent = 'Processing your files...';
 
   pollingInterval = setInterval(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/tools/job-status/${jobId}`);
+      const response = await fetch(`${API_URL}/api/tools/job-status/${jobId}?token=${encodeURIComponent(jobToken)}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -906,10 +907,10 @@ function showDownload(output) {
 
   downloadBtn.href = downloadUrl.startsWith('http')
     ? downloadUrl
-    : `${API_URL}/api/tools/download/${encodeURIComponent(downloadUrl.split('/').pop())}`;
+    : `${API_URL}${downloadUrl.startsWith('/api/') ? downloadUrl : `/api/tools/download/${encodeURIComponent(downloadUrl.split('/').pop())}`}`;
   downloadBtn.removeAttribute('target');
   downloadBtn.setAttribute('download', '');
-  downloadBtn.textContent = downloadUrl.endsWith('.zip') ? 'Download ZIP' : 'Download File';
+  downloadBtn.textContent = downloadUrl.split('?')[0].endsWith('.zip') ? 'Download ZIP' : 'Download File';
 }
 
 // Event Listeners
@@ -1030,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
   markPremiumTools();
 
   setTimeout(() => {
-    if (currentUser && currentUser.plan === 'pro') {
+    if (currentUser && ['pro', 'premium'].includes(currentUser.plan)) {
       return;
     }
     if (!sessionStorage.getItem('upgradeNudgeShown')) {

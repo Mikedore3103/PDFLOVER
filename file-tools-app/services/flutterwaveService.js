@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const Subscription = require('../models/Subscription');
 const Plan = require('../models/Plan');
@@ -166,42 +167,58 @@ async function processWebhook(payload) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SUBSCRIPTION_DAYS * 24 * 60 * 60 * 1000);
 
-  const claimed = await PaymentTransaction.findOneAndUpdate(
-    { _id: pending._id, status: { $ne: 'successful' } },
-    { $set: { status: 'successful', paidAt: now, providerReference: verifiedData } },
-    { new: true }
-  ).populate('plan');
-  if (!claimed) {
+  const session = await mongoose.startSession();
+  let activated = false;
+  try {
+    await session.withTransaction(async () => {
+      const claimed = await PaymentTransaction.findOneAndUpdate(
+        { _id: pending._id, status: { $ne: 'successful' } },
+        { $set: { status: 'successful', paidAt: now, providerReference: verifiedData } },
+        { new: true, session }
+      ).populate('plan');
+      if (!claimed) return;
+
+      await Subscription.updateMany(
+        { user: user._id, status: { $in: ['active', 'pending'] } },
+        { $set: { status: 'cancelled' } },
+        { session }
+      );
+      await Subscription.create([{
+        user: user._id,
+        plan: pending.plan._id,
+        status: 'active',
+        startedAt: now,
+        expiresAt,
+        customerReference: verifiedData.customer?.id,
+        subscriptionReference: pending.reference,
+        lastPaymentAt: now
+      }], { session });
+
+      await User.updateOne(
+        { _id: user._id },
+        { $set: {
+          plan: pending.plan.code,
+          currentPlan: pending.plan._id,
+          subscriptionStatus: 'active',
+          subscriptionStartedAt: now,
+          subscriptionExpiresAt: expiresAt,
+          paymentCustomerReference: verifiedData.customer?.id || null,
+          paymentSubscriptionReference: pending.reference,
+          lastSuccessfulPaymentAt: now
+        } },
+        { session }
+      );
+      await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: now } }, { session });
+      activated = true;
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  if (!activated) {
     await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
     return { duplicate: true };
   }
-
-  await Subscription.updateMany(
-    { user: user._id, status: { $in: ['active', 'pending'] } },
-    { $set: { status: 'cancelled' } }
-  );
-  await Subscription.create({
-    user: user._id,
-    plan: pending.plan._id,
-    status: 'active',
-    startedAt: now,
-    expiresAt,
-    customerReference: verifiedData.customer?.id,
-    subscriptionReference: pending.reference,
-    lastPaymentAt: now
-  });
-
-  user.plan = pending.plan.code;
-  user.currentPlan = pending.plan._id;
-  user.subscriptionStatus = 'active';
-  user.subscriptionStartedAt = now;
-  user.subscriptionExpiresAt = expiresAt;
-  user.paymentCustomerReference = verifiedData.customer?.id || null;
-  user.paymentSubscriptionReference = pending.reference;
-  user.lastSuccessfulPaymentAt = now;
-  await user.save();
-
-  await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: now } });
   return { valid: true };
 }
 

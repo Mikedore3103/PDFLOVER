@@ -10,8 +10,12 @@ const { initializePlans } = require('./services/planService');
 const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
 
+if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+  throw new Error('MONGODB_URI and JWT_SECRET must be configured.');
+}
+
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Mikedore:Justice6799@cluster0.isui1y2.mongodb.net/file-tools-app';
+const MONGODB_URI = process.env.MONGODB_URI;
 mongoose.connect(MONGODB_URI)
   .then(async () => {
     console.log('Connected to MongoDB');
@@ -48,11 +52,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS headers for frontend
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  const requestOrigin = req.headers.origin;
+  const allowedOrigin = process.env.FRONTEND_ORIGIN;
+  if (requestOrigin && allowedOrigin && requestOrigin === allowedOrigin) {
+    res.header('Access-Control-Allow-Origin', allowedOrigin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  }
   if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
+    if (requestOrigin && requestOrigin !== allowedOrigin) return res.sendStatus(403);
+    res.sendStatus(204);
   } else {
     next();
   }
@@ -60,8 +70,6 @@ app.use((req, res, next) => {
 
 // Serve frontend from repo root (index.html, style.css, script.js)
 app.use(express.static(path.join(__dirname, '..')));
-app.use('/uploads', express.static(uploadsDir));
-app.use('/conversions', express.static(conversionsDir));
 
 app.get('/api', (req, res) => {
   res.json({ message: 'File Tools API', version: '1.0.0' });

@@ -3,8 +3,10 @@ const upload = require('../config/multerConfig');
 const toolController = require('../controllers/toolController');
 const { usageLimiter } = require('../middleware/usageLimiter');
 const { guestLimiter } = require('../middleware/guestLimiter');
+const { rateLimit } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+router.use(rateLimit({ windowMs: 60 * 1000, max: 30 }));
 
 // Apply usage limiters to all tool routes
 // Order matters: usageLimiter (registered users) first, then guestLimiter (fallback)

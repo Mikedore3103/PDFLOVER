@@ -11,9 +11,11 @@ const PaymentTransaction = require('../models/PaymentTransaction');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
 // JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured.');
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const EMAIL_VERIFY_DISABLED = process.env.EMAIL_VERIFY_DISABLED === 'true';
+const EMAIL_VERIFY_DEV_MODE = process.env.EMAIL_VERIFY_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
 const MAILERSEND_FROM = process.env.MAILERSEND_FROM;
 
@@ -177,9 +179,9 @@ async function getProfile(req, res) {
     const paidSubscriptionActive = assignedPlan && assignedPlan.code !== 'free'
       && user.subscriptionStatus === 'active' && !subscriptionExpired;
     const effectivePlan = paidSubscriptionActive ? assignedPlan : await Plan.findOne({ code: 'free', active: true }).lean();
-    const latestPayment = await PaymentTransaction.findOne({ user: user._id, status: 'successful' })
+    const latestPayment = await PaymentTransaction.findOne({ user: user._id })
       .sort({ paidAt: -1 })
-      .select('amount currency paidAt')
+      .select('amount currency paidAt status createdAt')
       .lean();
     const effectiveStatus = subscriptionExpired ? 'expired' : (user.subscriptionStatus || 'inactive');
 
@@ -230,6 +232,9 @@ async function sendVerification(req, res) {
     storeVerificationCode(email, code);
 
     if (!MAILERSEND_API_KEY || !MAILERSEND_FROM) {
+      if (!EMAIL_VERIFY_DEV_MODE) {
+        return errorResponse(res, 'Email verification is not configured.', 503);
+      }
       return successResponse(res, {
         message: 'Verification configured for development. MAILERSEND_API_KEY/MAILERSEND_FROM not set.',
         code

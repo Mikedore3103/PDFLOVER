@@ -11,7 +11,8 @@ const Plan = require('../models/Plan');
 const { errorResponse } = require('../utils/responseHandler');
 
 // JWT secret (should be in environment variables in production)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured.');
 
 const PLAN_FILE_LIMITS = {
   free: 50 * 1024 * 1024,
@@ -175,7 +176,7 @@ async function usageLimiter(req, res, next) {
     }
 
     // Check if tool is premium-only
-    const toolName = req.body?.tool || req.params?.tool || '';
+    const toolName = req.body?.tool || req.params?.tool || req.path.replace(/^\//, '');
     if (isPremiumToolRestricted(toolName, effectivePlan.code)) {
       return errorResponse(res, 'This tool requires a Pro plan.', 403);
     }

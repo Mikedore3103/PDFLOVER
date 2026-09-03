@@ -30,6 +30,10 @@ const subscriptionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 subscriptionSchema.index({ user: 1, status: 1 });
+subscriptionSchema.index(
+  { user: 1 },
+  { unique: true, partialFilterExpression: { status: 'active' } }
+);
 subscriptionSchema.index({ subscriptionReference: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

@@ -16,9 +16,11 @@ const pdfToExcelService = require('../services/pdfToExcelService');
 const pdfToPowerpointService = require('../services/pdfToPowerpointService');
 const { unlockPdfService, protectPdfService } = require('../services/qpdfService');
 const { randomUUID } = require('crypto');
+const crypto = require('crypto');
 
 const jobs = new Map();
 const conversionsDir = path.join(__dirname, '..', 'conversions');
+const ACCESS_SECRET = process.env.JWT_SECRET;
 
 const toolServices = {
   'pdf-to-jpg': pdfToJpgService,
@@ -37,6 +39,27 @@ function resolveToolName(req, overrideTool) {
   return overrideTool || req.body?.tool || req.params?.tool || '';
 }
 
+function createAccessToken(jobId, filename = '') {
+  return crypto.createHmac('sha256', ACCESS_SECRET).update(`${jobId}:${filename}`).digest('base64url');
+}
+
+function hasValidAccessToken(jobId, filename, token) {
+  if (!token) return false;
+  const expected = createAccessToken(jobId, filename);
+  const expectedBuffer = Buffer.from(expected);
+  const receivedBuffer = Buffer.from(token);
+  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+}
+
+function protectOutput(output, jobId) {
+  const protect = value => {
+    const filename = path.basename(String(value));
+    const token = createAccessToken(jobId, filename);
+    return `/api/tools/download/${encodeURIComponent(filename)}?jobId=${encodeURIComponent(jobId)}&token=${encodeURIComponent(token)}`;
+  };
+  return Array.isArray(output) ? output.map(protect) : protect(output);
+}
+
 async function processToolRequest(req, res, overrideTool) {
   const files = req.files || [];
   try {
@@ -53,7 +76,7 @@ async function processToolRequest(req, res, overrideTool) {
     }
 
     const jobId = randomUUID();
-    jobs.set(jobId, { status: 'waiting', tool, createdAt: Date.now() });
+    jobs.set(jobId, { status: 'waiting', tool, ownerId: req.user?._id?.toString() || `guest:${req.ip}`, createdAt: Date.now() });
 
     // Keep conversion work out of the upload request. The client can poll this job.
     const options = { password: req.body?.password || '' };
@@ -64,6 +87,7 @@ async function processToolRequest(req, res, overrideTool) {
     return successResponse(res, {
       message: 'Upload received. Processing started.',
       jobId,
+      jobToken: createAccessToken(jobId),
       userType: req.userType,
       limits: req.userLimits,
     }, 202);
@@ -88,7 +112,7 @@ async function processJob(jobId, service, files, options, releaseConversion) {
 
   job.status = 'active';
   try {
-    job.output = await service(files, options);
+    job.output = protectOutput(await service(files, options), jobId);
     job.status = 'completed';
     job.completedAt = new Date().toISOString();
   } catch (error) {
@@ -168,6 +192,10 @@ async function getJobStatus(req, res) {
       return errorResponse(res, 'Job not found', 404);
     }
 
+    if (!hasValidAccessToken(id, '', req.query.token)) {
+      return errorResponse(res, 'Invalid job access token.', 403);
+    }
+
     let response = {
       jobId: id,
       status: job.status,
@@ -191,6 +219,10 @@ function downloadFile(req, res) {
   const filename = path.basename(req.params.filename || '');
   if (!filename || filename !== req.params.filename) {
     return errorResponse(res, 'Invalid download filename.', 400);
+  }
+
+  if (!hasValidAccessToken(req.query.jobId, filename, req.query.token)) {
+    return errorResponse(res, 'Invalid download token.', 403);
   }
 
   const filePath = path.join(conversionsDir, filename);

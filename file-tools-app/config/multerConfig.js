@@ -30,7 +30,8 @@ const upload = multer({
   storage,
   limits: {
     fileSize: 500 * 1024 * 1024, // 500MB - maximum allowed for Pro users
-    fields: 10
+    files: 100,
+    parts: 110
   }
 });
 

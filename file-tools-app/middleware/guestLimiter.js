@@ -20,6 +20,7 @@ const GUEST_LIMITS = {
   maxFileSize: 10 * 1024 * 1024, // 10MB
   resetInterval: RESET_INTERVAL
 };
+const PREMIUM_TOOLS = new Set(['compress-pdf', 'ocr-pdf', 'batch-convert']);
 
 /**
  * Get or create guest usage record for an IP address
@@ -84,6 +85,11 @@ function validateGuestFileSize(files) {
 function guestLimiter(req, res, next) {
   try {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const toolName = req.body?.tool || req.params?.tool || req.path.replace(/^\//, '');
+
+    if (PREMIUM_TOOLS.has(toolName)) {
+      return errorResponse(res, 'This tool requires a Pro plan.', 403);
+    }
 
     // Check conversion limit
     if (isGuestLimitExceeded(clientIP)) {
