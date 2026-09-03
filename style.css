@@ -1034,6 +1034,183 @@ body {
   }
 }
 
+.account-dashboard {
+  padding: 2rem 0 0;
+}
+
+.dashboard-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-heading h2 {
+  margin: 0.25rem 0 0;
+  color: var(--text);
+}
+
+.subscription-panel {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.8fr) minmax(320px, 1.4fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  border-radius: 10px;
+  background: rgba(255, 253, 251, 0.86);
+  box-shadow: var(--shadow-soft);
+}
+
+.subscription-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.subscription-summary strong {
+  color: var(--brand-dark);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.7rem;
+}
+
+.usage-value {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.subscription-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.subscription-details div {
+  min-width: 0;
+}
+
+.subscription-details span,
+.subscription-details strong {
+  display: block;
+}
+
+.subscription-details span {
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.subscription-details strong {
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.subscription-status {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: #eee7e4;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.subscription-status.status-active {
+  background: #e6f4ec;
+  color: #1d7042;
+}
+
+.subscription-status.status-expired,
+.subscription-status.status-cancelled,
+.subscription-status.status-past_due {
+  background: #fff0f0;
+  color: var(--brand-dark);
+}
+
+.subscription-notice {
+  grid-column: 1 / -1;
+  padding: 0.7rem 0.85rem;
+  border-radius: 6px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 0.85rem;
+}
+
+.subscription-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.5rem;
+}
+
+.dashboard-action {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--brand);
+  border-radius: 6px;
+  background: var(--brand);
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dashboard-action.secondary {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--brand-dark);
+}
+
+.dashboard-action.current,
+.dashboard-action:disabled {
+  border-color: var(--line);
+  background: #eee7e4;
+  color: var(--muted);
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .subscription-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .subscription-actions {
+    justify-content: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .dashboard-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .subscription-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .subscription-details {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .subscription-actions .dashboard-action {
+    flex: 1 1 100%;
+  }
+}
+
 /* Premium tool indicator */
 .tool-card.premium::after {
   content: "PRO";

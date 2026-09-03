@@ -48,6 +48,7 @@ async function processToolRequest(req, res, overrideTool) {
     // Get the service
     const service = toolServices[tool];
     if (!service) {
+      if (req.releaseConversion) await req.releaseConversion();
       return errorResponse(res, `Unsupported tool: ${tool}`, 400);
     }
 
@@ -56,7 +57,7 @@ async function processToolRequest(req, res, overrideTool) {
 
     // Keep conversion work out of the upload request. The client can poll this job.
     const options = { password: req.body?.password || '' };
-    processJob(jobId, service, files, options).catch((error) => {
+    processJob(jobId, service, files, options, req.releaseConversion).catch((error) => {
       console.error(`Job ${jobId} failed:`, error);
     });
 
@@ -67,6 +68,7 @@ async function processToolRequest(req, res, overrideTool) {
       limits: req.userLimits,
     }, 202);
   } catch (err) {
+    if (req.releaseConversion) await req.releaseConversion();
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         // This should be handled by middleware, but fallback here
@@ -80,7 +82,7 @@ async function processToolRequest(req, res, overrideTool) {
   }
 }
 
-async function processJob(jobId, service, files, options) {
+async function processJob(jobId, service, files, options, releaseConversion) {
   const job = jobs.get(jobId);
   if (!job) return;
 
@@ -90,6 +92,7 @@ async function processJob(jobId, service, files, options) {
     job.status = 'completed';
     job.completedAt = new Date().toISOString();
   } catch (error) {
+    if (releaseConversion) await releaseConversion();
     job.status = 'failed';
     job.error = error.message;
   } finally {

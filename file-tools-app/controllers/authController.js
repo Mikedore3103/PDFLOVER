@@ -7,6 +7,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
+const PaymentTransaction = require('../models/PaymentTransaction');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
 // JWT configuration
@@ -176,6 +177,11 @@ async function getProfile(req, res) {
     const paidSubscriptionActive = assignedPlan && assignedPlan.code !== 'free'
       && user.subscriptionStatus === 'active' && !subscriptionExpired;
     const effectivePlan = paidSubscriptionActive ? assignedPlan : await Plan.findOne({ code: 'free', active: true }).lean();
+    const latestPayment = await PaymentTransaction.findOne({ user: user._id, status: 'successful' })
+      .sort({ paidAt: -1 })
+      .select('amount currency paidAt')
+      .lean();
+    const effectiveStatus = subscriptionExpired ? 'expired' : (user.subscriptionStatus || 'inactive');
 
     return successResponse(res, {
       user: {
@@ -189,6 +195,19 @@ async function getProfile(req, res) {
         subscriptionStartedAt: user.subscriptionStartedAt,
         subscriptionExpiresAt: user.subscriptionExpiresAt,
         lastSuccessfulPaymentAt: user.lastSuccessfulPaymentAt,
+        planDetails: effectivePlan ? {
+          code: effectivePlan.code,
+          name: effectivePlan.name,
+          price: effectivePlan.price,
+          currency: effectivePlan.currency,
+          dailyConversionLimit: effectivePlan.dailyConversionLimit
+        } : null,
+        subscription: {
+          status: effectiveStatus,
+          startedAt: user.subscriptionStartedAt,
+          expiresAt: user.subscriptionExpiresAt,
+          lastPayment: latestPayment
+        },
         createdAt: user.createdAt
       }
     });

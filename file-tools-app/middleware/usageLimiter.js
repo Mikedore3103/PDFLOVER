@@ -32,25 +32,65 @@ const PREMIUM_TOOLS = new Set([
  * @param {Object} user - User document from database
  * @returns {Object} Updated user object
  */
-function resetDailyUsageIfNeeded(user) {
-  const now = Date.now();
-  const timeSinceReset = now - new Date(user.lastUsageReset).getTime();
-
-  if (timeSinceReset >= RESET_INTERVAL) {
-    user.dailyUsageCount = 0;
-    user.lastUsageReset = now;
-  }
-
-  return user;
+function getUtcDayStart(date = new Date()) {
+  const dayStart = new Date(date);
+  dayStart.setUTCHours(0, 0, 0, 0);
+  return dayStart;
 }
 
-/**
- * Check if user has exceeded their daily conversion limit
- * @param {Object} user - User document
- * @returns {boolean} True if limit exceeded
- */
-function isUserLimitExceeded(user, plan) {
-  return plan.dailyConversionLimit !== -1 && user.dailyUsageCount >= plan.dailyConversionLimit;
+async function reserveConversion(user, plan) {
+  const dayStart = getUtcDayStart();
+  const limit = plan.dailyConversionLimit;
+  const limitFilter = limit === -1
+    ? {}
+    : {
+        $or: [
+          { lastUsageReset: { $lt: dayStart } },
+          { lastUsageReset: { $exists: false } },
+          { lastUsageReset: null },
+          { dailyUsageCount: { $lt: limit } }
+        ]
+      };
+
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: user._id, ...limitFilter },
+    [{
+      $set: {
+        dailyUsageCount: {
+          $cond: [
+            { $lt: [{ $ifNull: ['$lastUsageReset', new Date(0)] }, dayStart] },
+            1,
+            { $add: [{ $ifNull: ['$dailyUsageCount', 0] }, 1] }
+          ]
+        },
+        lastUsageReset: {
+          $cond: [
+            { $lt: [{ $ifNull: ['$lastUsageReset', new Date(0)] }, dayStart] },
+            new Date(),
+            '$lastUsageReset'
+          ]
+        }
+      }
+    }],
+    { new: true }
+  );
+
+  if (!updatedUser) return null;
+
+  return {
+    user: updatedUser,
+    dayStart,
+    release: async () => {
+      await User.updateOne(
+        {
+          _id: updatedUser._id,
+          lastUsageReset: { $gte: dayStart, $lt: new Date(dayStart.getTime() + RESET_INTERVAL) },
+          dailyUsageCount: { $gt: 0 }
+        },
+        { $inc: { dailyUsageCount: -1 } }
+      );
+    }
+  };
 }
 
 /**
@@ -104,6 +144,7 @@ function getUserFromToken(req) {
  * Should be applied to tool routes - checks JWT and applies limits
  */
 async function usageLimiter(req, res, next) {
+  let reservation;
   try {
     const tokenPayload = getUserFromToken(req);
 
@@ -133,21 +174,22 @@ async function usageLimiter(req, res, next) {
       effectivePlan = await Plan.findOne({ code: 'free', active: true }).lean();
     }
 
-    // Reset daily usage if needed
-    resetDailyUsageIfNeeded(user);
-
     // Check if tool is premium-only
     const toolName = req.body?.tool || req.params?.tool || '';
     if (isPremiumToolRestricted(toolName, effectivePlan.code)) {
       return errorResponse(res, 'This tool requires a Pro plan.', 403);
     }
 
-    // Check conversion limit
-    if (isUserLimitExceeded(user, effectivePlan)) {
+    reservation = await reserveConversion(user, effectivePlan);
+    if (!reservation) {
       const message = effectivePlan.code === 'free'
-        ? 'Daily conversion limit reached. Upgrade to Pro for unlimited access.'
-        : 'Conversion limit reached. Please try again tomorrow.';
-      return errorResponse(res, message, 429);
+        ? "You've reached your 10 free conversions for today. Upgrade to Pro for up to 100 conversions per day or Premium for unlimited conversions."
+        : "You've reached your 100 daily conversions. Upgrade to Premium for unlimited conversions.";
+      return errorResponse(res, message, 429, {
+        plan: effectivePlan.code,
+        dailyConversionLimit: effectivePlan.dailyConversionLimit,
+        upgradeOptions: effectivePlan.code === 'free' ? ['pro', 'premium'] : ['premium']
+      });
     }
 
     // Validate file sizes
@@ -155,12 +197,8 @@ async function usageLimiter(req, res, next) {
       validateUserFileSize(req.files, effectivePlan.code);
     }
 
-    // Increment usage counter
-    user.dailyUsageCount += 1;
-    await user.save();
-
     // Add user info to request
-    req.user = user;
+    req.user = reservation.user;
     req.userType = 'registered';
     req.userLimits = {
       maxConversions: effectivePlan.dailyConversionLimit,
@@ -168,9 +206,11 @@ async function usageLimiter(req, res, next) {
       resetInterval: RESET_INTERVAL
     };
     req.plan = effectivePlan;
+    req.releaseConversion = reservation.release;
 
     next();
   } catch (error) {
+    if (reservation) await reservation.release();
     return errorResponse(res, error.message, 500);
   }
 }

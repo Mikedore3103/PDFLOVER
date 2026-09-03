@@ -35,6 +35,15 @@ const upgradeBtn = document.getElementById('upgradeBtn');
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+const accountDashboard = document.getElementById('accountDashboard');
+const dashboardPlan = document.getElementById('dashboardPlan');
+const dashboardUsage = document.getElementById('dashboardUsage');
+const subscriptionStatus = document.getElementById('subscriptionStatus');
+const subscriptionStarted = document.getElementById('subscriptionStarted');
+const subscriptionExpires = document.getElementById('subscriptionExpires');
+const lastPayment = document.getElementById('lastPayment');
+const subscriptionNotice = document.getElementById('subscriptionNotice');
+const subscriptionActions = document.getElementById('subscriptionActions');
 
 // Modal Elements
 const authModal = document.getElementById('authModal');
@@ -168,16 +177,65 @@ function updateAuthUI() {
     userEmail.textContent = currentUser.email;
     userPlan.textContent = currentUser.plan.toUpperCase();
     userPlan.classList.toggle('pro', currentUser.plan === 'pro');
-    if (currentUser.plan === 'pro') {
+    userPlan.classList.toggle('premium', currentUser.plan === 'premium');
+    if (currentUser.plan === 'premium') {
       hideElement(upgradeBtn);
     } else {
       showElement(upgradeBtn);
     }
+    renderSubscriptionDashboard();
   } else {
     showElement(guestInfo);
     hideElement(userInfo);
     currentUser = null;
+    hideElement(accountDashboard);
   }
+}
+
+function formatDate(value) {
+  if (!value) return 'Not applicable';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleDateString(undefined, { dateStyle: 'medium' });
+}
+
+function renderSubscriptionDashboard() {
+  if (!currentUser) return;
+  const plan = currentUser.planDetails;
+  const subscription = currentUser.subscription || {};
+  const planCode = currentUser.plan || 'free';
+  showElement(accountDashboard);
+  dashboardPlan.textContent = planCode.toUpperCase();
+  dashboardUsage.textContent = plan?.dailyConversionLimit === -1
+    ? 'Unlimited conversions'
+    : `${currentUser.dailyUsageCount || 0} / ${plan?.dailyConversionLimit ?? 10} conversions used today`;
+  subscriptionStatus.textContent = String(subscription.status || 'inactive').replace('_', ' ');
+  subscriptionStatus.className = `subscription-status status-${subscription.status || 'inactive'}`;
+  subscriptionStarted.textContent = formatDate(subscription.startedAt);
+  subscriptionExpires.textContent = formatDate(subscription.expiresAt);
+  lastPayment.textContent = subscription.lastPayment
+    ? `${subscription.lastPayment.currency} ${subscription.lastPayment.amount} on ${formatDate(subscription.lastPayment.paidAt)}`
+    : 'Not available';
+
+  subscriptionNotice.textContent = '';
+  hideElement(subscriptionNotice);
+  if (['expired', 'cancelled', 'past_due'].includes(subscription.status)) {
+    subscriptionNotice.textContent = 'Your subscription is not active. Choose a paid plan to restore higher conversion limits.';
+    showElement(subscriptionNotice);
+  }
+
+  const actions = [];
+  if (planCode === 'free') {
+    actions.push('<button class="dashboard-action" data-dashboard-plan="pro">Upgrade to Pro</button>');
+    actions.push('<button class="dashboard-action secondary" data-dashboard-plan="premium">Upgrade to Premium</button>');
+  } else if (planCode === 'pro') {
+    actions.push('<button class="dashboard-action" data-dashboard-plan="premium">Upgrade to Premium</button>');
+  } else {
+    actions.push('<button class="dashboard-action current" disabled>Current Plan</button>');
+  }
+  subscriptionActions.innerHTML = actions.join('');
+  subscriptionActions.querySelectorAll('[data-dashboard-plan]').forEach(button => {
+    button.addEventListener('click', () => openUpgradeModal('Plans & access'));
+  });
 }
 
 async function loadUserProfile() {

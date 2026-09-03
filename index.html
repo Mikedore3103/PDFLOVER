@@ -41,6 +41,31 @@
   </header>
 
   <main class="main">
+    <section id="accountDashboard" class="account-dashboard hidden" aria-labelledby="accountDashboardTitle">
+      <div class="container">
+        <div class="dashboard-heading">
+          <div>
+            <p class="section-kicker">Account overview</p>
+            <h2 id="accountDashboardTitle">Your subscription</h2>
+          </div>
+          <span id="subscriptionStatus" class="subscription-status"></span>
+        </div>
+        <div class="subscription-panel">
+          <div class="subscription-summary">
+            <span class="summary-label">Current plan</span>
+            <strong id="dashboardPlan">FREE</strong>
+            <span id="dashboardUsage" class="usage-value"></span>
+          </div>
+          <div class="subscription-details">
+            <div><span>Started</span><strong id="subscriptionStarted">Not applicable</strong></div>
+            <div><span>Renews / expires</span><strong id="subscriptionExpires">Not applicable</strong></div>
+            <div><span>Last payment</span><strong id="lastPayment">Not available</strong></div>
+          </div>
+          <div id="subscriptionNotice" class="subscription-notice hidden"></div>
+          <div id="subscriptionActions" class="subscription-actions"></div>
+        </div>
+      </div>
+    </section>
     <!-- Tool Selection Grid -->
     <section id="toolSection" class="tool-section">
       <div class="container">
