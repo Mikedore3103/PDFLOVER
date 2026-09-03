@@ -36,7 +36,11 @@ async function flutterwaveWebhook(req, res) {
   const verificationHash = req.headers['verif-hash'];
   console.log('Flutterwave webhook received.');
   if (!validSignature(req.rawBody, signature, verificationHash)) {
-    console.warn('Flutterwave webhook rejected: invalid or missing signature.');
+    console.warn('Flutterwave webhook rejected: invalid or missing signature.', {
+      hasFlutterwaveSignature: Boolean(signature),
+      hasVerifHash: Boolean(verificationHash),
+      verificationHeaders: Object.keys(req.headers).filter(header => /signature|hash/i.test(header))
+    });
     return res.status(401).send('Invalid signature');
   }
 
