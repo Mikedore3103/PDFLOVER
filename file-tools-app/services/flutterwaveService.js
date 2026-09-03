@@ -104,12 +104,23 @@ async function initializePayment(user, plan) {
   }
 }
 
-function validSignature(rawBody, signature) {
-  if (!rawBody || !signature || !FLW_SECRET_HASH) return false;
+function safeEquals(actual, expected) {
+  if (!actual || !expected) return false;
+  const actualBuffer = Buffer.from(String(actual));
+  const expectedBuffer = Buffer.from(String(expected));
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+function validSignature(rawBody, signature, verificationHash) {
+  if (!FLW_SECRET_HASH) return false;
+
+  // Flutterwave Standard sends the dashboard's Secret Hash as `verif-hash`.
+  // Some newer webhook configurations use an HMAC SHA-256 value in
+  // `flutterwave-signature`, so accept either verified format.
+  if (safeEquals(verificationHash, FLW_SECRET_HASH)) return true;
+  if (!rawBody || !signature) return false;
   const expected = crypto.createHmac('sha256', FLW_SECRET_HASH).update(rawBody).digest('base64');
-  const expectedBuffer = Buffer.from(expected);
-  const receivedBuffer = Buffer.from(signature);
-  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+  return safeEquals(signature, expected);
 }
 
 async function verifyTransaction(transactionId) {

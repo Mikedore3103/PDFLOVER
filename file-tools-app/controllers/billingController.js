@@ -33,8 +33,9 @@ async function prepareCheckout(req, res) {
 
 async function flutterwaveWebhook(req, res) {
   const signature = req.headers['flutterwave-signature'];
+  const verificationHash = req.headers['verif-hash'];
   console.log('Flutterwave webhook received.');
-  if (!validSignature(req.rawBody, signature)) {
+  if (!validSignature(req.rawBody, signature, verificationHash)) {
     console.warn('Flutterwave webhook rejected: invalid or missing signature.');
     return res.status(401).send('Invalid signature');
   }
