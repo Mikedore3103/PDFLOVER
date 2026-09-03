@@ -20,14 +20,14 @@ async function initializePlans() {
     {
       code: 'pro',
       name: 'Pro',
-      price: configuredPrice('PRO_PLAN_PRICE'),
+      price: configuredPrice('PRO_PLAN_PRICE', 3000),
       dailyConversionLimit: 100,
       active: true
     },
     {
       code: 'premium',
       name: 'Premium',
-      price: configuredPrice('PREMIUM_PLAN_PRICE'),
+      price: configuredPrice('PREMIUM_PLAN_PRICE', 10000),
       dailyConversionLimit: -1,
       active: true
     }
@@ -37,7 +37,9 @@ async function initializePlans() {
   for (const definition of definitions) {
     plans[definition.code] = await Plan.findOneAndUpdate(
       { code: definition.code },
-      { $setOnInsert: { ...definition, currency } },
+      // Keep plan definitions in code and MongoDB in sync. $setOnInsert left
+      // already-created plans priced at 0, which made checkout unavailable.
+      { $set: { ...definition, currency } },
       { upsert: true, new: true }
     );
   }

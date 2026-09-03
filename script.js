@@ -470,7 +470,7 @@ async function loadPlans() {
         ${isRecommended ? '<span class="plan-ribbon">Recommended</span>' : ''}
         <div class="plan-card-top"><span class="plan-kicker">${plan.code}</span>${isCurrent ? '<span class="current-label">Current Plan</span>' : ''}</div>
         <h3>${plan.name}</h3>
-        <div class="plan-price">${formatPlanPrice(plan)}<span>/day access</span></div>
+        <div class="plan-price">${formatPlanPrice(plan)}<span>/30 days</span></div>
         <p>${planLimitText(plan)}</p>
         <button class="plan-action ${isCurrent ? 'is-current' : ''}" data-plan-code="${plan.code}" ${isCurrent ? 'disabled' : ''}>${isCurrent ? 'Current Plan' : action}</button>
       </article>`;
