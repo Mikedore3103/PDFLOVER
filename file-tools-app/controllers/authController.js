@@ -114,6 +114,7 @@ async function register(req, res) {
       user: {
         id: user._id,
         email: user.email,
+        role: user.role,
         plan: user.plan
       }
     });
@@ -155,6 +156,7 @@ async function login(req, res) {
       user: {
         id: user._id,
         email: user.email,
+        role: user.role,
         plan: user.plan,
         dailyUsageCount: user.dailyUsageCount
       }
@@ -189,6 +191,7 @@ async function getProfile(req, res) {
       user: {
         id: user._id,
         email: user.email,
+        role: user.role,
         plan: effectivePlan?.code || 'free',
         dailyUsageCount: user.dailyUsageCount,
         lastUsageReset: user.lastUsageReset,

@@ -6,6 +6,7 @@ const toolsRouter = require('./routes/tools');
 const authRouter = require('./routes/auth');
 const plansRouter = require('./routes/plans');
 const billingRouter = require('./routes/billing');
+const adminRouter = require('./routes/admin');
 const { initializePlans } = require('./services/planService');
 const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
@@ -50,18 +51,27 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS headers for frontend
+// CORS headers for a separately hosted frontend. Requests without an Origin
+// header (server-to-server calls and same-origin navigation) need no CORS
+// headers. Set FRONTEND_ORIGIN to one or more comma-separated HTTPS origins
+// in Render, for example: https://your-site.github.io,https://yourdomain.com
 app.use((req, res, next) => {
   const requestOrigin = req.headers.origin;
-  const allowedOrigin = process.env.FRONTEND_ORIGIN;
-  if (requestOrigin && allowedOrigin && requestOrigin === allowedOrigin) {
-    res.header('Access-Control-Allow-Origin', allowedOrigin);
+  const allowedOrigins = (process.env.FRONTEND_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+  const normalizedOrigin = requestOrigin?.replace(/\/$/, '');
+  const isAllowedOrigin = normalizedOrigin && allowedOrigins.includes(normalizedOrigin);
+
+  if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', normalizedOrigin);
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   }
   if (req.method === 'OPTIONS') {
-    if (requestOrigin && requestOrigin !== allowedOrigin) return res.sendStatus(403);
+    if (requestOrigin && !isAllowedOrigin) return res.sendStatus(403);
     res.sendStatus(204);
   } else {
     next();
@@ -79,6 +89,7 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/plans', plansRouter);
 app.use('/api/billing', billingRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/tools', toolsRouter);
 
 app.use((err, req, res, next) => {

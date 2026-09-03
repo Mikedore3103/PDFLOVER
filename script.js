@@ -1,8 +1,12 @@
 // ===== API CONFIGURATION =====
-// CHANGE THIS to your Render.com backend URL after deployment
-// const API_URL = 'https://file-tools-app-backend.onrender.com';
-// For LOCAL TESTING, use: const API_URL = 'http://localhost:3001';
-const API_URL = 'https://pdflover-f8a3.onrender.com';
+// Same-origin deployment avoids CORS entirely. A separately hosted frontend
+// continues to call the Render API, which must list that site in
+// FRONTEND_ORIGIN on Render.
+const RENDER_API_URL = 'https://pdflover-f8a3.onrender.com';
+const isLocalBackend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_URL = window.location.hostname === 'pdflover-f8a3.onrender.com' || isLocalBackend
+  ? window.location.origin
+  : RENDER_API_URL;
 
 // DOM Elements
 const toolSection = document.getElementById('toolSection');
@@ -44,6 +48,11 @@ const subscriptionExpires = document.getElementById('subscriptionExpires');
 const lastPayment = document.getElementById('lastPayment');
 const subscriptionNotice = document.getElementById('subscriptionNotice');
 const subscriptionActions = document.getElementById('subscriptionActions');
+const adminDashboard = document.getElementById('adminDashboard');
+const adminTotalUsers = document.getElementById('adminTotalUsers');
+const adminActiveSubscriptions = document.getElementById('adminActiveSubscriptions');
+const adminSuccessfulPayments = document.getElementById('adminSuccessfulPayments');
+const adminRecentUsers = document.getElementById('adminRecentUsers');
 
 // Modal Elements
 const authModal = document.getElementById('authModal');
@@ -184,11 +193,43 @@ function updateAuthUI() {
       showElement(upgradeBtn);
     }
     renderSubscriptionDashboard();
+    if (currentUser.role === 'admin') {
+      loadAdminOverview();
+    } else {
+      hideElement(adminDashboard);
+    }
   } else {
     showElement(guestInfo);
     hideElement(userInfo);
     currentUser = null;
     hideElement(accountDashboard);
+    hideElement(adminDashboard);
+  }
+}
+
+function escapeHtml(value) {
+  const node = document.createElement('span');
+  node.textContent = String(value || '');
+  return node.innerHTML;
+}
+
+async function loadAdminOverview() {
+  try {
+    const response = await fetch(`${API_URL}/api/admin/overview`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Unable to load admin overview.');
+    adminTotalUsers.textContent = data.totalUsers;
+    adminActiveSubscriptions.textContent = data.activeSubscriptions;
+    adminSuccessfulPayments.textContent = data.successfulPayments;
+    adminRecentUsers.innerHTML = data.recentUsers.map(user =>
+      `<li>${escapeHtml(user.email)} — ${escapeHtml(user.plan)} / ${escapeHtml(user.subscriptionStatus)}</li>`
+    ).join('') || '<li>No users yet.</li>';
+    showElement(adminDashboard);
+  } catch (error) {
+    console.error('Failed to load admin overview:', error);
+    hideElement(adminDashboard);
   }
 }
 

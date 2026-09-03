@@ -84,6 +84,12 @@ function validateGuestFileSize(files) {
  */
 function guestLimiter(req, res, next) {
   try {
+    // usageLimiter already authenticated and charged registered users. Do not
+    // apply guest limits or guest-only premium restrictions a second time.
+    if (req.userType === 'registered') {
+      return next();
+    }
+
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
     const toolName = req.body?.tool || req.params?.tool || req.path.replace(/^\//, '');
 
