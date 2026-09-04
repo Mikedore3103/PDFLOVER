@@ -4,7 +4,10 @@
 // FRONTEND_ORIGIN on Render.
 const RENDER_API_URL = 'https://pdflover-f8a3.onrender.com';
 const isLocalBackend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_URL = window.location.hostname === 'pdflover-f8a3.onrender.com' || isLocalBackend
+const isRenderBackend = window.location.hostname.endsWith('.onrender.com');
+// Any Render-hosted copy (including the Docker migration service) serves both
+// the frontend and API, so it must call itself instead of the legacy service.
+const API_URL = isRenderBackend || isLocalBackend
   ? window.location.origin
   : RENDER_API_URL;
 
@@ -1095,7 +1098,7 @@ function uploadFiles() {
   });
 
   xhr.addEventListener('error', () => {
-    alert('Upload failed. Please check your connection and try again.');
+    alert(`Upload request could not reach the conversion server (${API_URL}). Please wait a moment for the service to wake up, then try again.`);
     resetUI();
   });
 
