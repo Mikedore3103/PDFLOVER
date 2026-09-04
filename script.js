@@ -129,11 +129,10 @@ const TOOL_ACCEPT = {
 
 // Replace these clearly labelled placeholder URLs with File Tools' real social profiles.
 const SOCIAL_LINKS = {
-  Facebook: { icon: 'facebook', url: 'https://example.com/replace-with-facebook-url' },
-  Instagram: { icon: 'instagram', url: 'https://example.com/replace-with-instagram-url' },
-  X: { icon: 'twitter', url: 'https://example.com/replace-with-x-url' },
-  LinkedIn: { icon: 'linkedin', url: 'https://example.com/replace-with-linkedin-url' },
-  YouTube: { icon: 'youtube', url: 'https://example.com/replace-with-youtube-url' }
+  Instagram: { mark: 'instagram', url: 'https://example.com/replace-with-instagram-url' },
+  X: { mark: 'x', url: 'https://example.com/replace-with-x-url' },
+  Facebook: { mark: 'facebook', url: 'https://example.com/replace-with-facebook-url' },
+  LinkedIn: { mark: 'linkedin', url: 'https://example.com/replace-with-linkedin-url' }
 };
 
 // Utility Functions
@@ -233,6 +232,10 @@ function updateAuthUI() {
     currentUser = null;
     hideElement(accountDashboard);
     hideElement(adminDashboard);
+  }
+
+  if (footerAuthBtn) {
+    footerAuthBtn.textContent = token && currentUser ? 'Log Out' : 'Log In';
   }
 }
 
@@ -334,9 +337,6 @@ async function loadAdminOverview() {
     hideElement(adminDashboard);
   }
 
-  if (footerAuthBtn) {
-    footerAuthBtn.textContent = token && currentUser ? 'Log Out' : 'Log In';
-  }
 }
 
 function getAvailableTools() {
@@ -353,12 +353,31 @@ function closeToolsMenu() {
   toolsMenuList.classList.remove('is-open');
 }
 
+function positionToolsMenu() {
+  // Keep the desktop panel within a consistent 20px viewport gutter even
+  // when the trigger sits close to the right edge of the header.
+  if (window.innerWidth <= 520) {
+    toolsMenuList.removeAttribute('style');
+    return;
+  }
+
+  const gutter = 20;
+  const trigger = toolsMenuButton.getBoundingClientRect();
+  const width = Math.min(608, window.innerWidth - (gutter * 2));
+  const left = Math.max(gutter, Math.min(trigger.left, window.innerWidth - width - gutter));
+  toolsMenuList.style.width = `${width}px`;
+  toolsMenuList.style.left = `${left}px`;
+  toolsMenuList.style.top = `${trigger.bottom + 10}px`;
+  toolsMenuList.style.right = 'auto';
+  toolsMenuList.style.bottom = 'auto';
+}
+
 function renderSiteNavigation() {
   const tools = getAvailableTools();
   const toolItems = tools.map(tool => `<button type="button" role="menuitem" class="tool-menu-item" data-tool-launch="${tool.id}"><i data-lucide="${tool.icon}" aria-hidden="true"></i><span>${tool.name}</span></button>`).join('');
   toolsMenuList.innerHTML = toolItems;
   footerToolList.innerHTML = tools.map(tool => `<li><button type="button" class="footer-link" data-tool-launch="${tool.id}">${tool.name}</button></li>`).join('');
-  footerSocialLinks.innerHTML = Object.entries(SOCIAL_LINKS).map(([name, social]) => `<a href="${social.url}" target="_blank" rel="noopener noreferrer" aria-label="${name} (replace placeholder URL)"><i data-lucide="${social.icon}" aria-hidden="true"></i></a>`).join('');
+  footerSocialLinks.innerHTML = Object.entries(SOCIAL_LINKS).map(([name, social]) => `<a class="social-mark ${social.mark}" href="${social.url}" target="_blank" rel="noopener noreferrer" aria-label="${name} (replace placeholder URL)"><span aria-hidden="true">${social.mark === 'instagram' ? '◎' : social.mark === 'x' ? '𝕏' : social.mark === 'facebook' ? 'f' : 'in'}</span></a>`).join('');
   footerYear.textContent = new Date().getFullYear();
 
   document.querySelectorAll('[data-tool-launch]').forEach(button => {
@@ -1212,8 +1231,13 @@ document.addEventListener('DOMContentLoaded', () => {
   upgradeBtn.addEventListener('click', () => openUpgradeModal('Upgrade to Pro', 'Unlock bigger files, higher limits, and priority processing.'));
   toolsMenuButton.addEventListener('click', () => {
     const isOpen = toolsMenuButton.getAttribute('aria-expanded') === 'true';
+    if (!isOpen) positionToolsMenu();
     toolsMenuButton.setAttribute('aria-expanded', String(!isOpen));
     toolsMenuList.classList.toggle('is-open', !isOpen);
+  });
+  document.querySelector('.tools-menu').addEventListener('pointerenter', positionToolsMenu);
+  window.addEventListener('resize', () => {
+    if (toolsMenuList.classList.contains('is-open')) positionToolsMenu();
   });
   footerPricingBtn.addEventListener('click', () => openUpgradeModal('Plans & access'));
   footerAuthBtn.addEventListener('click', () => {

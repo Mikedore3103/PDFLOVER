@@ -1530,27 +1530,25 @@ h1, h2, h3, .brand {
 .tools-menu-button svg { width: 15px; transition: transform 0.2s ease; }
 .tools-menu-button[aria-expanded="true"] svg { transform: rotate(180deg); }
 .tools-menu-list {
-  position: absolute;
-  top: calc(100% + 0.7rem);
-  left: 0;
+  position: fixed;
   z-index: 1100;
   display: none;
-  width: min(19rem, calc(100vw - 2rem));
-  max-height: min(29rem, calc(100vh - 7rem));
+  width: min(38rem, calc(100vw - 2rem));
+  max-height: 40vh;
   overflow-y: auto;
   padding: 0.45rem;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(231, 221, 218, 0.98);
   border-radius: 10px;
   background: var(--surface);
-  box-shadow: 0 18px 40px rgba(55, 32, 32, 0.2);
+  box-shadow: 0 22px 48px rgba(33, 28, 29, 0.26), 0 0 0 1px rgba(255,255,255,0.5) inset;
 }
-.tools-menu-list.is-open { display: grid; }
+.tools-menu-list.is-open { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.2rem; }
 .tool-menu-item {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.55rem;
   width: 100%;
-  padding: 0.68rem 0.75rem;
+  padding: 0.62rem 0.7rem;
   border: 0;
   border-radius: 7px;
   background: transparent;
@@ -1565,36 +1563,44 @@ h1, h2, h3, .brand {
 .tools-menu-button:focus-visible, .footer-link:focus-visible, .footer-social-links a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 @media (hover: hover) and (min-width: 769px) {
-  .tools-menu:hover .tools-menu-list { display: grid; }
+  .tools-menu:hover .tools-menu-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.2rem; }
   .tools-menu:hover .tools-menu-button { color: #fff; }
   .tools-menu:hover .tools-menu-button svg { transform: rotate(180deg); }
 }
 
-.site-footer { margin-top: auto; padding: 3.5rem 0 0; background: var(--brand); color: #fff; }
-.footer-grid { display: grid; grid-template-columns: minmax(13rem, 1.6fr) repeat(3, minmax(9rem, 1fr)); gap: 2.5rem; }
+.site-footer { max-height: 40vh; margin-top: auto; padding: 1.75rem 0 0; overflow-y: auto; background: var(--brand); color: #fff; }
+.footer-grid { display: grid; grid-template-columns: minmax(13rem, 1.6fr) minmax(15rem, 1.45fr) repeat(2, minmax(8rem, 1fr)); gap: 1.5rem; }
 .footer-brand-lockup { display: flex; align-items: center; gap: 0.65rem; font-family: "Space Grotesk", sans-serif; font-size: 1.15rem; }
 .footer-brand-mark { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(255,255,255,0.45); border-radius: 9px; background: rgba(255,255,255,0.14); }
 .footer-brand-mark svg { width: 19px; }
 .footer-brand p { max-width: 18rem; margin: 0.85rem 0 0; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
 .footer-section h2 { margin: 0 0 0.85rem; font-size: 0.86rem; font-family: "DM Sans", sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.footer-link-list { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+.footer-link-list { display: grid; gap: 0.2rem; margin: 0; padding: 0; list-style: none; }
+#footerToolList { grid-auto-flow: column; grid-template-rows: repeat(5, min-content); grid-auto-columns: minmax(6.5rem, max-content); column-gap: 1.25rem; }
 .footer-link { padding: 0.25rem 0; border: 0; background: transparent; color: rgba(255,255,255,0.85); font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
 .footer-link:hover, .footer-link:focus-visible { color: #fff; }
-.footer-social-links { display: flex; flex-wrap: wrap; gap: 0.55rem; }
-.footer-social-links a { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border: 1px solid rgba(255,255,255,0.45); border-radius: 8px; color: #fff; transition: transform 0.2s ease, background 0.2s ease; }
-.footer-social-links a:hover { transform: translateY(-2px); background: rgba(255,255,255,0.16); }
-.footer-social-links svg { width: 18px; height: 18px; }
-.footer-bottom { margin-top: 2.5rem; padding: 1.15rem 1rem; border-top: 1px solid rgba(255,255,255,0.28); }
+.footer-social-links { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.footer-social-links a { display: grid; width: 1.85rem; height: 1.85rem; place-items: center; color: #fff; text-decoration: none; transition: transform 0.2s ease, opacity 0.2s ease; }
+.footer-social-links a:hover { transform: translateY(-2px); opacity: 0.78; }
+.social-mark span { color: #fff; font-family: Arial, sans-serif; font-size: 1.5rem; font-weight: 700; line-height: 1; }
+.social-mark.instagram span { font-size: 2rem; font-weight: 400; }
+.social-mark.x span { font-size: 1.3rem; }
+.social-mark.linkedin span { font-size: 1.15rem; }
+.footer-bottom { margin-top: 1.4rem; padding: 0.85rem 1rem; border-top: 1px solid rgba(255,255,255,0.28); }
 .footer-bottom p { margin: 0; color: rgba(255,255,255,0.78); font-size: 0.84rem; }
 
 @media (max-width: 768px) {
   .tools-menu-list { left: 0; }
-  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 1.25rem; }
+  .tools-menu-list.is-open { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+  .footer-brand { grid-column: 1 / -1; }
 }
 
 @media (max-width: 520px) {
   .main-nav { align-items: center; }
-  .tools-menu-list { position: fixed; top: auto; left: 1rem; right: 1rem; bottom: 1rem; width: auto; max-height: min(70vh, 31rem); }
-  .footer-grid { grid-template-columns: 1fr; gap: 1.75rem; }
-  .site-footer { padding-top: 2.5rem; }
+  .tools-menu-list { position: fixed; top: auto; left: 20px; right: 20px; bottom: 20px; width: auto; max-height: 40vh; }
+  .tools-menu-list.is-open { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .site-footer { padding-top: 1.25rem; }
+  #footerToolList { grid-template-rows: repeat(4, min-content); column-gap: 0.8rem; }
 }
