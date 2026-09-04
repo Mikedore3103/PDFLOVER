@@ -132,6 +132,38 @@ function amountsMatch(actual, expected) {
   return Number(actual) === Number(expected);
 }
 
+function uniqueValues(values) {
+  return [...new Set(values.filter(value => value !== undefined && value !== null && String(value).trim() !== '').map(value => String(value).trim()))];
+}
+
+function getReferenceCandidates(payload, data, verifiedData = {}) {
+  return uniqueValues([
+    data.tx_ref,
+    data.txRef,
+    data.txref,
+    data.reference,
+    data.meta?.tx_ref,
+    data.meta?.reference,
+    payload.tx_ref,
+    payload.txRef,
+    verifiedData.tx_ref,
+    verifiedData.txRef,
+    verifiedData.reference
+  ]);
+}
+
+function getTransactionId(data) {
+  return data.id || data.transaction_id || data.transactionId || data.tx_id || data.txId;
+}
+
+async function findPaymentByReferences(references) {
+  if (!references.length) return null;
+  return PaymentTransaction.findOne({
+    provider: 'flutterwave',
+    reference: { $in: references }
+  }).populate('plan');
+}
+
 function paymentValidationFailure(verifiedData, pending, user) {
   const status = String(verifiedData.status || '').toLowerCase();
   if (!['successful', 'succeeded'].includes(status)) return `Flutterwave reported status: ${status || 'missing'}`;
@@ -159,12 +191,25 @@ async function processWebhook(payload) {
     await WebhookEvent.create({ provider: 'flutterwave', eventId, eventType: payload.type, payload });
   }
 
-  const reference = data.tx_ref || data.reference;
-  const transactionId = data.id;
-  console.log(`Flutterwave webhook event received: type=${payload.type || 'unknown'}, reference=${reference || 'missing'}, transactionId=${transactionId || 'missing'}`);
-  const pending = await PaymentTransaction.findOne({ provider: 'flutterwave', reference }).populate('plan');
+  const transactionId = getTransactionId(data);
+  const referenceCandidates = getReferenceCandidates(payload, data);
+  console.log(`Flutterwave webhook event received: type=${payload.type || 'unknown'}, references=${referenceCandidates.join(',') || 'missing'}, transactionId=${transactionId || 'missing'}`);
+
+  let pending = await findPaymentByReferences(referenceCandidates);
+  let verifiedData = null;
+  let lookupReferences = referenceCandidates;
+
+  if (!pending && transactionId) {
+    const verified = await verifyTransaction(transactionId);
+    verifiedData = verified.data || {};
+    const verifiedReferenceCandidates = getReferenceCandidates(payload, data, verifiedData);
+    console.log(`Flutterwave verification returned references=${verifiedReferenceCandidates.join(',') || 'missing'} for transactionId=${transactionId}`);
+    lookupReferences = verifiedReferenceCandidates;
+    pending = await findPaymentByReferences(verifiedReferenceCandidates);
+  }
+
   if (!pending) {
-    console.warn(`Flutterwave payment transaction not found for reference: ${reference || 'missing'}`);
+    console.warn(`Flutterwave payment transaction not found. references=${lookupReferences.join(',') || 'missing'}, transactionId=${transactionId || 'missing'}`);
     throw new Error('Payment transaction not found.');
   }
   if (pending.status === 'successful') {
@@ -174,9 +219,12 @@ async function processWebhook(payload) {
 
   const user = await User.findById(pending.user);
   if (!user) throw new Error('Payment user not found.');
+  if (!transactionId) throw new Error('Flutterwave transaction ID is missing.');
 
-  const verified = await verifyTransaction(transactionId);
-  const verifiedData = verified.data || {};
+  if (!verifiedData) {
+    const verified = await verifyTransaction(transactionId);
+    verifiedData = verified.data || {};
+  }
   const failureReason = paymentValidationFailure(verifiedData, pending, user);
   const valid = !failureReason;
 
