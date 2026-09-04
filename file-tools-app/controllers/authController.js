@@ -18,6 +18,9 @@ const EMAIL_VERIFY_DISABLED = process.env.EMAIL_VERIFY_DISABLED === 'true';
 const EMAIL_VERIFY_DEV_MODE = process.env.EMAIL_VERIFY_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
 const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
 const MAILERSEND_FROM = process.env.MAILERSEND_FROM;
+const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY;
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
+const TURNSTILE_ENABLED = Boolean(TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY);
 
 // In-memory email verification storage (for MVP; replace with DB/Redis in production)
 const verificationCodes = new Map();
@@ -45,6 +48,31 @@ function isEmailVerified(email) {
     return false;
   }
   return true;
+}
+
+async function verifyHumanToken(token, remoteIp) {
+  if (!TURNSTILE_ENABLED) return { success: true, skipped: true };
+  if (!token) return { success: false, message: 'Please complete human verification.' };
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: TURNSTILE_SECRET_KEY,
+        response: token,
+        ...(remoteIp ? { remoteip: remoteIp } : {})
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      return { success: false, message: 'Human verification failed. Please try again.' };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Turnstile verification failed:', error.message);
+    return { success: false, message: 'Human verification failed. Please try again.' };
+  }
 }
 
 /**
@@ -128,11 +156,16 @@ async function register(req, res) {
  */
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
 
     // Validate input
     if (!email || !password) {
       return errorResponse(res, 'Email and password are required', 400);
+    }
+
+    const humanVerification = await verifyHumanToken(turnstileToken, req.ip);
+    if (!humanVerification.success) {
+      return errorResponse(res, humanVerification.message, 400);
     }
 
     // Find user
@@ -164,6 +197,15 @@ async function login(req, res) {
   } catch (error) {
     return errorResponse(res, error.message, 500);
   }
+}
+
+function getSecurityConfig(req, res) {
+  return successResponse(res, {
+    turnstile: {
+      enabled: TURNSTILE_ENABLED,
+      siteKey: TURNSTILE_ENABLED ? TURNSTILE_SITE_KEY : null
+    }
+  });
 }
 
 /**
@@ -312,6 +354,7 @@ module.exports = {
   register,
   login,
   getProfile,
+  getSecurityConfig,
   sendVerification,
   verifyEmail
 };

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -251,11 +252,10 @@
             </div>
             <p class="verify-hint">We’ll email you a verification code before signup.</p>
           </div>
-          <div id="robotCheckGroup" class="form-group hidden">
-            <label class="robot-check">
-              <input type="checkbox" id="robotCheck">
-              <span>I'm not a robot</span>
-            </label>
+          <div id="humanVerificationGroup" class="form-group human-verification hidden">
+            <label>Human verification</label>
+            <div id="humanVerificationWidget" class="turnstile-widget"></div>
+            <p id="humanVerificationMessage" class="verify-hint">Complete the quick check to continue.</p>
           </div>
           <button type="submit" id="authSubmitBtn" class="auth-submit-btn">Login</button>
         </form>

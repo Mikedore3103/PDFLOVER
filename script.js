@@ -68,8 +68,9 @@ const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
 const emailVerifyGroup = document.getElementById('emailVerifyGroup');
 const sendVerifyBtn = document.getElementById('sendVerifyBtn');
 const emailVerifyCodeInput = document.getElementById('emailVerifyCode');
-const robotCheckGroup = document.getElementById('robotCheckGroup');
-const robotCheck = document.getElementById('robotCheck');
+const humanVerificationGroup = document.getElementById('humanVerificationGroup');
+const humanVerificationWidget = document.getElementById('humanVerificationWidget');
+const humanVerificationMessage = document.getElementById('humanVerificationMessage');
 const authSubmitBtn = document.getElementById('authSubmitBtn');
 const authToggleText = document.getElementById('authToggleText');
 const authToggleBtn = document.getElementById('authToggleBtn');
@@ -95,6 +96,10 @@ let pollingInterval = null;
 let currentUser = null;
 let isLoginMode = true;
 let emailVerified = false;
+let securityConfigPromise = null;
+let turnstileSiteKey = null;
+let turnstileWidgetId = null;
+let turnstileToken = '';
 
 // Premium tools
 const PREMIUM_TOOLS = ['compress-pdf', 'ocr-pdf', 'batch-convert'];
@@ -224,6 +229,68 @@ async function readJsonResponse(response) {
   } catch (error) {
     return { message: text };
   }
+}
+
+async function loadSecurityConfig() {
+  if (!securityConfigPromise) {
+    securityConfigPromise = fetch(`${API_URL}/api/auth/security-config`)
+      .then(readJsonResponse)
+      .catch(error => {
+        console.error('Failed to load security config:', error);
+        return { turnstile: { enabled: false } };
+      });
+  }
+  return securityConfigPromise;
+}
+
+function resetHumanVerification() {
+  turnstileToken = '';
+  if (window.turnstile && turnstileWidgetId !== null) {
+    window.turnstile.reset(turnstileWidgetId);
+  }
+}
+
+function renderHumanVerificationWidget() {
+  if (!humanVerificationWidget || !turnstileSiteKey) return;
+  if (!window.turnstile) {
+    humanVerificationMessage.textContent = 'Loading human verification...';
+    window.setTimeout(renderHumanVerificationWidget, 300);
+    return;
+  }
+  if (turnstileWidgetId !== null) {
+    resetHumanVerification();
+    return;
+  }
+
+  turnstileWidgetId = window.turnstile.render(humanVerificationWidget, {
+    sitekey: turnstileSiteKey,
+    callback: (token) => {
+      turnstileToken = token;
+      humanVerificationMessage.textContent = 'Verification complete.';
+    },
+    'expired-callback': () => {
+      turnstileToken = '';
+      humanVerificationMessage.textContent = 'Verification expired. Please complete it again.';
+    },
+    'error-callback': () => {
+      turnstileToken = '';
+      humanVerificationMessage.textContent = 'Verification could not load. Please refresh and try again.';
+    }
+  });
+}
+
+async function prepareHumanVerification(login) {
+  hideElement(humanVerificationGroup);
+  turnstileToken = '';
+  if (!login || !humanVerificationGroup) return;
+
+  const config = await loadSecurityConfig();
+  if (!config.turnstile?.enabled || !config.turnstile?.siteKey) return;
+
+  turnstileSiteKey = config.turnstile.siteKey;
+  humanVerificationMessage.textContent = 'Complete the quick check to continue.';
+  showElement(humanVerificationGroup);
+  renderHumanVerificationWidget();
 }
 
 async function loadAdminOverview() {
@@ -414,24 +481,20 @@ function openAuthModal(login = true) {
 
   hideElement(confirmPasswordGroup);
   hideElement(emailVerifyGroup);
-  hideElement(robotCheckGroup);
   emailVerified = false;
-  if (robotCheck) {
-    robotCheck.checked = false;
-  }
   if (!login) {
     showElement(confirmPasswordGroup);
     showElement(emailVerifyGroup);
-  } else {
-    showElement(robotCheckGroup);
   }
 
   authForm.reset();
   showElement(authModal);
+  prepareHumanVerification(login);
 }
 
 function closeAuthModal() {
   hideElement(authModal);
+  resetHumanVerification();
 }
 
 async function openUpgradeModal(title = 'Plans & access', message = 'Pick the level that matches how you work. Your current plan is marked below.') {
@@ -521,8 +584,8 @@ async function handleAuthSubmit(e) {
   const email = emailInput.value.trim();
   const password = passwordInput.value;
 
-  if (isLoginMode && robotCheck && !robotCheck.checked) {
-    alert('Please confirm you are not a robot.');
+  if (isLoginMode && humanVerificationGroup && !humanVerificationGroup.classList.contains('hidden') && !turnstileToken) {
+    alert('Please complete human verification.');
     return;
   }
 
@@ -543,12 +606,15 @@ async function handleAuthSubmit(e) {
 
   try {
     const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
+    const body = isLoginMode
+      ? { email, password, turnstileToken }
+      : { email, password };
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify(body)
     });
 
     const data = await response.json();
@@ -560,9 +626,11 @@ async function handleAuthSubmit(e) {
       alert(`Welcome${!isLoginMode ? ', your account has been created' : ''}!`);
     } else {
       alert(data.message || 'Authentication failed');
+      if (isLoginMode) resetHumanVerification();
     }
   } catch (error) {
     alert('Network error. Please try again.');
+    if (isLoginMode) resetHumanVerification();
   } finally {
     authSubmitBtn.disabled = false;
     authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';

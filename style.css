@@ -782,12 +782,19 @@ body {
   color: var(--muted);
 }
 
-.robot-check {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-  color: var(--text);
+.human-verification {
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.human-verification label {
+  margin-bottom: 0.65rem;
+}
+
+.turnstile-widget {
+  min-height: 65px;
 }
 
 .form-group input:focus {
