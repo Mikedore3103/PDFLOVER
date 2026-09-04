@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Practical document workflows, PDF tips, and file-management guidance from PDF LOVERS.">
+  <title>Document Desk | PDF LOVERS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body class="blog-page">
+  <header class="header blog-header">
+    <div class="container">
+      <a class="brand-lockup" href="index.html" aria-label="PDF LOVERS home">
+        <span class="brand-mark"><i data-lucide="file-stack" aria-hidden="true"></i></span>
+        <span><strong class="brand">PDF LOVERS</strong><span class="tagline">Make documents move</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="index.html#tools">Tools</a>
+        <a href="index.html#uploadSection">Workspace</a>
+        <a class="nav-current" href="blog.html" aria-current="page">Blog</a>
+      </nav>
+      <a class="blog-login-link" href="index.html">Log in</a>
+    </div>
+  </header>
+
+  <main id="blogRoot" class="blog-main" tabindex="-1"></main>
+
+  <footer class="site-footer blog-footer">
+    <div class="container footer-grid">
+      <section class="footer-brand" aria-labelledby="blogFooterBrand">
+        <div class="footer-brand-lockup"><span class="footer-brand-mark"><i data-lucide="file-stack" aria-hidden="true"></i></span><strong id="blogFooterBrand">PDF LOVERS</strong></div>
+        <p>Practical tools and thoughtful notes for work that moves with you.</p>
+      </section>
+      <section class="footer-section" aria-labelledby="blogFooterExplore">
+        <h2 id="blogFooterExplore">Explore</h2>
+        <ul class="footer-link-list"><li><a href="index.html#tools">All tools</a></li><li><a href="index.html#uploadSection">Workspace</a></li><li><a href="blog.html">Document Desk</a></li></ul>
+      </section>
+      <section class="footer-section" aria-labelledby="blogFooterTopics">
+        <h2 id="blogFooterTopics">Topics</h2>
+        <ul id="blogFooterCategories" class="footer-link-list"></ul>
+      </section>
+      <section class="footer-section" aria-labelledby="blogFooterSocial">
+        <h2 id="blogFooterSocial">Follow along</h2>
+        <p class="footer-muted">Useful document guidance, whenever you need it.</p>
+      </section>
+    </div>
+    <div class="container footer-bottom"><p>&copy; <span id="blogYear"></span> PDF LOVERS. All rights reserved.</p></div>
+  </footer>
+  <script src="blog.js"></script>
+</body>
+</html>
