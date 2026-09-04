@@ -1,7 +1,7 @@
 services:
   - type: web
     name: pdflover
-    env: node
-    buildCommand: apt-get update && apt-get install -y ghostscript qpdf poppler-utils libreoffice && npm --prefix file-tools-app install
-    startCommand: npm --prefix file-tools-app start
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /api
