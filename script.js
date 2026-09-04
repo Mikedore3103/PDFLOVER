@@ -216,12 +216,22 @@ function escapeHtml(value) {
   return node.innerHTML;
 }
 
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return { message: text };
+  }
+}
+
 async function loadAdminOverview() {
   try {
     const response = await fetch(`${API_URL}/api/admin/overview`, {
       headers: { Authorization: `Bearer ${getAuthToken()}` }
     });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.message || 'Unable to load admin overview.');
     adminTotalUsers.textContent = data.totalUsers;
     adminActiveSubscriptions.textContent = data.activeSubscriptions;
@@ -245,7 +255,7 @@ async function loadAdminUsers(search = '') {
     const response = await fetch(`${API_URL}/api/admin/users?${query}`, {
       headers: { Authorization: `Bearer ${getAuthToken()}` }
     });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.message || 'Unable to load accounts.');
     adminUsers.innerHTML = data.users.map(user => `<article class="admin-user">
       <div><div class="admin-user-email">${escapeHtml(user.email)}</div><div class="admin-user-meta">${escapeHtml(user.plan)} · ${escapeHtml(user.subscriptionStatus)}</div></div>
@@ -273,12 +283,12 @@ async function grantManualAccess(userId, planCode) {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
       body: JSON.stringify({ planCode, ...(amount.trim() ? { amount } : {}), notes })
     });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) throw new Error(data.message || 'Unable to grant access.');
     alert(`${data.user.email} now has ${data.user.plan.toUpperCase()} access.`);
     await loadAdminOverview();
   } catch (error) {
-    alert(error.message || 'Unable to grant access.');
+    alert(`Manual grant failed: ${error.message || 'Unable to grant access.'}`);
   }
 }
 

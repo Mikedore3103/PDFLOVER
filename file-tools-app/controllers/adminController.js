@@ -12,6 +12,17 @@ function toPositiveInteger(value, fallback, maximum) {
   return Math.min(number, maximum);
 }
 
+function parseManualAmount(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === '') return fallback;
+  const number = Number(String(value).replace(/[,\s]/g, ''));
+  return number;
+}
+
+function getManualSubscriptionDays() {
+  const days = Number(process.env.MANUAL_SUBSCRIPTION_DAYS || 30);
+  return Number.isFinite(days) && days > 0 ? days : 30;
+}
+
 async function getOverview(req, res) {
   try {
     const [totalUsers, activeSubscriptions, successfulPayments, recentUsers] = await Promise.all([
@@ -57,14 +68,14 @@ async function updateUserPlan(req, res) {
 
     const previousPlan = user.plan;
     const now = new Date();
-    const manualDays = Number(process.env.MANUAL_SUBSCRIPTION_DAYS || 30);
+    const manualDays = getManualSubscriptionDays();
     const expiresAt = plan.code === 'free'
       ? null
       : (req.body.expiresAt ? new Date(req.body.expiresAt) : new Date(now.getTime() + manualDays * 24 * 60 * 60 * 1000));
     if (expiresAt && Number.isNaN(expiresAt.getTime())) {
       return errorResponse(res, 'The supplied expiry date is invalid.', 400);
     }
-    const manualAmount = Number(req.body.amount ?? plan.price);
+    const manualAmount = parseManualAmount(req.body.amount, plan.price);
     if (plan.code !== 'free' && (!Number.isFinite(manualAmount) || manualAmount < 0)) {
       return errorResponse(res, 'The cash payment amount must be a valid positive number.', 400);
     }
@@ -127,11 +138,19 @@ async function updateUserPlan(req, res) {
       }
     });
 
+    console.log(`Admin manual plan update: admin=${req.userId} target=${user._id} plan=${plan.code} expiresAt=${user.subscriptionExpiresAt || 'none'}`);
+
     return successResponse(res, { message: 'User plan updated.', user: {
       id: user._id, email: user.email, plan: user.plan, subscriptionStatus: user.subscriptionStatus,
       subscriptionExpiresAt: user.subscriptionExpiresAt
     } });
   } catch (error) {
+    console.error('Admin manual plan update failed:', {
+      adminId: req.userId?.toString(),
+      targetUserId: req.params.userId,
+      planCode: req.body?.planCode,
+      message: error.message
+    });
     return errorResponse(res, 'Unable to update the user plan.', 500);
   }
 }
