@@ -15,6 +15,7 @@ const pdfToWordService = require('../services/pdfToWordService');
 const pdfToExcelService = require('../services/pdfToExcelService');
 const pdfToPowerpointService = require('../services/pdfToPowerpointService');
 const { unlockPdfService, protectPdfService } = require('../services/qpdfService');
+const officeToPdfService = require('../services/officeToPdfService');
 const { randomUUID } = require('crypto');
 const crypto = require('crypto');
 
@@ -33,6 +34,9 @@ const toolServices = {
   'pdf-to-powerpoint': pdfToPowerpointService,
   'unlock-pdf': unlockPdfService,
   'protect-pdf': protectPdfService,
+  'word-to-pdf': files => officeToPdfService(files, { prefix: 'word' }),
+  'excel-to-pdf': files => officeToPdfService(files, { prefix: 'excel' }),
+  'powerpoint-to-pdf': files => officeToPdfService(files, { prefix: 'powerpoint' }),
 };
 
 function resolveToolName(req, overrideTool) {
@@ -178,6 +182,10 @@ async function protectPdf(req, res) {
   return processToolRequest(req, res, 'protect-pdf');
 }
 
+async function wordToPdf(req, res) { return processToolRequest(req, res, 'word-to-pdf'); }
+async function excelToPdf(req, res) { return processToolRequest(req, res, 'excel-to-pdf'); }
+async function powerpointToPdf(req, res) { return processToolRequest(req, res, 'powerpoint-to-pdf'); }
+
 async function getJobStatus(req, res) {
   try {
     const { id } = req.params;
@@ -245,6 +253,9 @@ module.exports = {
   pdfToPowerpoint,
   unlockPdf,
   protectPdf,
+  wordToPdf,
+  excelToPdf,
+  powerpointToPdf,
   getJobStatus,
   downloadFile
 };

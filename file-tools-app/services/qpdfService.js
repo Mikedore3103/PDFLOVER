@@ -22,6 +22,11 @@ async function runQpdf(args) {
   }
 }
 
+async function validatePdf(filePath, password = '') {
+  const passwordArg = password ? [`--password=${password}`] : [];
+  await runQpdf([...passwordArg, '--check', filePath]);
+}
+
 function getOutputPath(file, prefix) {
   const baseName = path.basename(file.originalname, path.extname(file.originalname));
   return path.join(conversionsDir, `${prefix}-${Date.now()}-${baseName}.pdf`);
@@ -36,6 +41,7 @@ async function unlockPdfService(files, options = {}) {
 
   const outputPath = getOutputPath(files[0], 'unlocked');
   await runQpdf([`--password=${options.password}`, '--decrypt', files[0].path, outputPath]);
+  await validatePdf(outputPath);
   return `/conversions/${path.basename(outputPath)}`;
 }
 
@@ -48,7 +54,8 @@ async function protectPdfService(files, options = {}) {
 
   const outputPath = getOutputPath(files[0], 'protected');
   await runQpdf(['--encrypt', options.password, options.password, '256', '--', files[0].path, outputPath]);
+  await validatePdf(outputPath, options.password);
   return `/conversions/${path.basename(outputPath)}`;
 }
 
-module.exports = { unlockPdfService, protectPdfService };
+module.exports = { unlockPdfService, protectPdfService, validatePdf };

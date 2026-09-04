@@ -124,7 +124,10 @@ const TOOL_ACCEPT = {
   'pdf-to-excel': '.pdf',
   'pdf-to-powerpoint': '.pdf',
   'unlock-pdf': '.pdf',
-  'protect-pdf': '.pdf'
+  'protect-pdf': '.pdf',
+  'word-to-pdf': '.doc,.docx',
+  'excel-to-pdf': '.xls,.xlsx',
+  'powerpoint-to-pdf': '.ppt,.pptx'
 };
 
 // Replace these clearly labelled placeholder URLs with File Tools' real social profiles.

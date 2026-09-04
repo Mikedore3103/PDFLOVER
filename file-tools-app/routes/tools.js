@@ -26,6 +26,9 @@ router.post('/pdf-to-excel', upload.array('files'), toolMiddleware, toolControll
 router.post('/pdf-to-powerpoint', upload.array('files'), toolMiddleware, toolController.pdfToPowerpoint);
 router.post('/unlock-pdf', upload.array('files'), toolMiddleware, toolController.unlockPdf);
 router.post('/protect-pdf', upload.array('files'), toolMiddleware, toolController.protectPdf);
+router.post('/word-to-pdf', upload.array('files'), toolMiddleware, toolController.wordToPdf);
+router.post('/excel-to-pdf', upload.array('files'), toolMiddleware, toolController.excelToPdf);
+router.post('/powerpoint-to-pdf', upload.array('files'), toolMiddleware, toolController.powerpointToPdf);
 
 // Job status endpoint (no auth required for checking status)
 router.get('/job-status/:id', toolController.getJobStatus);

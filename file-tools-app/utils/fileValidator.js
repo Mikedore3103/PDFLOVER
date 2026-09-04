@@ -23,7 +23,10 @@ const TOOL_RULES = {
   'pdf-to-excel': { minFiles: 1, maxFiles: 1, extensions: ['.pdf'] },
   'pdf-to-powerpoint': { minFiles: 1, maxFiles: 1, extensions: ['.pdf'] },
   'unlock-pdf': { minFiles: 1, maxFiles: 1, extensions: ['.pdf'] },
-  'protect-pdf': { minFiles: 1, maxFiles: 1, extensions: ['.pdf'] }
+  'protect-pdf': { minFiles: 1, maxFiles: 1, extensions: ['.pdf'] },
+  'word-to-pdf': { minFiles: 1, maxFiles: 1, extensions: ['.doc', '.docx'] },
+  'excel-to-pdf': { minFiles: 1, maxFiles: 1, extensions: ['.xls', '.xlsx'] },
+  'powerpoint-to-pdf': { minFiles: 1, maxFiles: 1, extensions: ['.ppt', '.pptx'] }
 };
 
 function createError(message, statusCode = 400) {
