@@ -2,7 +2,7 @@
 // Same-origin deployment avoids CORS entirely. A separately hosted frontend
 // continues to call the Render API, which must list that site in
 // FRONTEND_ORIGIN on Render.
-const RENDER_API_URL = 'https://pdflover-f8a3.onrender.com';
+const RENDER_API_URL = 'https://pdflover-1.onrender.com';
 const isLocalBackend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const isRenderBackend = window.location.hostname.endsWith('.onrender.com');
 // Any Render-hosted copy (including the Docker migration service) serves both
