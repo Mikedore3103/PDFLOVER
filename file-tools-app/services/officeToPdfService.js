@@ -19,10 +19,18 @@ async function officeToPdf(files, options = {}) {
 
   try {
     try {
-      await execFileAsync('soffice', [
+      const args = [
         `-env:UserInstallation=${pathToFileURL(profileDir).href}`,
         '--headless', '--convert-to', 'pdf', '--outdir', conversionsDir, file.path
-      ]);
+      ];
+      // Debian/Ubuntu images normally provide `soffice`; some images expose
+      // only `libreoffice`. Try both without changing the conversion flow.
+      try {
+        await execFileAsync('soffice', args);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        await execFileAsync('libreoffice', args);
+      }
     } catch (error) {
       const conversionError = new Error(
         error.code === 'ENOENT'
