@@ -59,6 +59,7 @@ async function initializePayment(user, plan) {
     reference,
     status: 'pending'
   });
+  console.log(`Flutterwave checkout created: ${reference}`);
 
   try {
     const result = await flutterwaveRequest('/v3/payments', {
@@ -160,8 +161,12 @@ async function processWebhook(payload) {
 
   const reference = data.tx_ref || data.reference;
   const transactionId = data.id;
+  console.log(`Flutterwave webhook event received: type=${payload.type || 'unknown'}, reference=${reference || 'missing'}, transactionId=${transactionId || 'missing'}`);
   const pending = await PaymentTransaction.findOne({ provider: 'flutterwave', reference }).populate('plan');
-  if (!pending) throw new Error('Payment transaction not found.');
+  if (!pending) {
+    console.warn(`Flutterwave payment transaction not found for reference: ${reference || 'missing'}`);
+    throw new Error('Payment transaction not found.');
+  }
   if (pending.status === 'successful') {
     await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
     return { duplicate: true };
