@@ -128,6 +128,10 @@ async function verifyTransaction(transactionId) {
   return flutterwaveRequest(`/v3/transactions/${encodeURIComponent(transactionId)}/verify`, { method: 'GET' });
 }
 
+async function verifyTransactionByReference(reference) {
+  return flutterwaveRequest(`/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`, { method: 'GET' });
+}
+
 function amountsMatch(actual, expected) {
   return Number(actual) === Number(expected);
 }
@@ -219,10 +223,11 @@ async function processWebhook(payload) {
 
   const user = await User.findById(pending.user);
   if (!user) throw new Error('Payment user not found.');
-  if (!transactionId) throw new Error('Flutterwave transaction ID is missing.');
 
   if (!verifiedData) {
-    const verified = await verifyTransaction(transactionId);
+    const verified = transactionId
+      ? await verifyTransaction(transactionId)
+      : await verifyTransactionByReference(pending.reference);
     verifiedData = verified.data || {};
   }
   const failureReason = paymentValidationFailure(verifiedData, pending, user);
