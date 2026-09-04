@@ -97,11 +97,16 @@ function generateToken(user) {
  */
 async function register(req, res) {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
+    const normalizedUsername = typeof username === 'string' ? username.trim() : '';
 
     // Validate input
-    if (!email || !password) {
-      return errorResponse(res, 'Email and password are required', 400);
+    if (!normalizedUsername || !email || !password) {
+      return errorResponse(res, 'Username, email and password are required', 400);
+    }
+
+    if (!/^[A-Za-z0-9_-]{3,30}$/.test(normalizedUsername)) {
+      return errorResponse(res, 'Username must be 3–30 characters and use only letters, numbers, underscores, or hyphens', 400);
     }
 
     if (password.length < 6) {
@@ -118,6 +123,11 @@ async function register(req, res) {
       return errorResponse(res, 'User with this email already exists', 409);
     }
 
+    const existingUsername = await User.findOne({ username: normalizedUsername });
+    if (existingUsername) {
+      return errorResponse(res, 'This username is already taken', 409);
+    }
+
     // Create new user
     const freePlan = await Plan.findOne({ code: 'free', active: true });
     if (!freePlan) {
@@ -125,6 +135,7 @@ async function register(req, res) {
     }
 
     const user = new User({
+      username: normalizedUsername,
       email,
       password,
       plan: 'free',
@@ -141,6 +152,7 @@ async function register(req, res) {
       token,
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
         role: user.role,
         plan: user.plan
@@ -188,6 +200,7 @@ async function login(req, res) {
       token,
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
         role: user.role,
         plan: user.plan,
@@ -232,6 +245,7 @@ async function getProfile(req, res) {
     return successResponse(res, {
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
         role: user.role,
         plan: effectivePlan?.code || 'free',

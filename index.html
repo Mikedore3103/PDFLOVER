@@ -32,7 +32,7 @@
           <button id="registerBtn" class="auth-btn primary">Sign Up</button>
         </div>
         <div id="userInfo" class="user-info hidden">
-          <span id="userEmail"></span>
+          <span id="userName" class="user-name"></span>
           <span id="userPlan" class="plan-badge"></span>
           <button id="upgradeBtn" class="auth-btn primary hidden">Upgrade</button>
           <button id="logoutBtn" class="auth-btn">Logout</button>
@@ -47,7 +47,7 @@
         <div class="dashboard-heading">
           <div>
             <p class="section-kicker">Account overview</p>
-            <h2 id="accountDashboardTitle">Your subscription</h2>
+            <h2 id="accountDashboardTitle">Welcome</h2>
           </div>
           <span id="subscriptionStatus" class="subscription-status"></span>
         </div>
@@ -226,6 +226,11 @@
       </div>
       <div class="modal-body">
         <form id="authForm">
+          <div id="usernameGroup" class="form-group hidden">
+            <label for="username">Username</label>
+            <input type="text" id="username" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_-]+" aria-describedby="usernameHint">
+            <p id="usernameHint" class="verify-hint">3–30 characters: letters, numbers, underscores, or hyphens.</p>
+          </div>
           <div class="form-group">
             <label for="email">Email</label>
             <input type="email" id="email" required>

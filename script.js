@@ -33,7 +33,7 @@ const pdfPassword = document.getElementById('pdfPassword');
 // Auth Elements
 const guestInfo = document.getElementById('guestInfo');
 const userInfo = document.getElementById('userInfo');
-const userEmail = document.getElementById('userEmail');
+const userName = document.getElementById('userName');
 const userPlan = document.getElementById('userPlan');
 const upgradeBtn = document.getElementById('upgradeBtn');
 const loginBtn = document.getElementById('loginBtn');
@@ -61,6 +61,8 @@ const adminUsers = document.getElementById('adminUsers');
 const authModal = document.getElementById('authModal');
 const modalTitle = document.getElementById('modalTitle');
 const authForm = document.getElementById('authForm');
+const usernameInput = document.getElementById('username');
+const usernameGroup = document.getElementById('usernameGroup');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const confirmPasswordInput = document.getElementById('confirmPassword');
@@ -191,7 +193,10 @@ function updateAuthUI() {
   if (token && currentUser) {
     hideElement(guestInfo);
     showElement(userInfo);
-    userEmail.textContent = currentUser.email;
+    // Accounts created before usernames were introduced remain usable without
+    // using a long email address as the primary header identity.
+    userName.textContent = currentUser.username || 'Account';
+    userName.title = currentUser.username || currentUser.email || '';
     userPlan.textContent = currentUser.plan.toUpperCase();
     userPlan.classList.toggle('pro', currentUser.plan === 'pro');
     userPlan.classList.toggle('premium', currentUser.plan === 'premium');
@@ -367,6 +372,7 @@ function formatDate(value) {
 
 function renderSubscriptionDashboard() {
   if (!currentUser) return;
+  accountDashboardTitle.textContent = `Welcome, ${currentUser.username || 'there'}`;
   const plan = currentUser.planDetails;
   const subscription = currentUser.subscription || {};
   const planCode = currentUser.plan || 'free';
@@ -480,9 +486,12 @@ function openAuthModal(login = true) {
   authToggleBtn.textContent = login ? 'Sign Up' : 'Login';
 
   hideElement(confirmPasswordGroup);
+  hideElement(usernameGroup);
   hideElement(emailVerifyGroup);
+  usernameInput.required = !login;
   emailVerified = false;
   if (!login) {
+    showElement(usernameGroup);
     showElement(confirmPasswordGroup);
     showElement(emailVerifyGroup);
   }
@@ -583,6 +592,7 @@ async function handleAuthSubmit(e) {
 
   const email = emailInput.value.trim();
   const password = passwordInput.value;
+  const username = usernameInput.value.trim();
 
   if (isLoginMode && humanVerificationGroup && !humanVerificationGroup.classList.contains('hidden') && !turnstileToken) {
     alert('Please complete human verification.');
@@ -590,6 +600,10 @@ async function handleAuthSubmit(e) {
   }
 
   if (!isLoginMode) {
+    if (!/^[A-Za-z0-9_-]{3,30}$/.test(username)) {
+      alert('Username must be 3–30 characters and use only letters, numbers, underscores, or hyphens.');
+      return;
+    }
     const confirmPassword = confirmPasswordInput.value;
     if (password !== confirmPassword) {
       alert('Passwords do not match');
@@ -608,7 +622,7 @@ async function handleAuthSubmit(e) {
     const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
     const body = isLoginMode
       ? { email, password, turnstileToken }
-      : { email, password };
+      : { username, email, password };
     const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers: {

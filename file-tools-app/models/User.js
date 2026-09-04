@@ -9,6 +9,17 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  // Kept optional so accounts created before usernames remain valid. New
+  // registrations are required to supply one in the registration controller.
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30,
+    match: /^[A-Za-z0-9_-]+$/
+  },
   email: {
     type: String,
     required: true,
