@@ -39,6 +39,13 @@ const upgradeBtn = document.getElementById('upgradeBtn');
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+const toolsMenuButton = document.getElementById('toolsMenuButton');
+const toolsMenuList = document.getElementById('toolsMenuList');
+const footerToolList = document.getElementById('footerToolList');
+const footerPricingBtn = document.getElementById('footerPricingBtn');
+const footerAuthBtn = document.getElementById('footerAuthBtn');
+const footerSocialLinks = document.getElementById('footerSocialLinks');
+const footerYear = document.getElementById('footerYear');
 const accountDashboard = document.getElementById('accountDashboard');
 const dashboardPlan = document.getElementById('dashboardPlan');
 const dashboardUsage = document.getElementById('dashboardUsage');
@@ -118,6 +125,15 @@ const TOOL_ACCEPT = {
   'pdf-to-powerpoint': '.pdf',
   'unlock-pdf': '.pdf',
   'protect-pdf': '.pdf'
+};
+
+// Replace these clearly labelled placeholder URLs with File Tools' real social profiles.
+const SOCIAL_LINKS = {
+  Facebook: { icon: 'facebook', url: 'https://example.com/replace-with-facebook-url' },
+  Instagram: { icon: 'instagram', url: 'https://example.com/replace-with-instagram-url' },
+  X: { icon: 'twitter', url: 'https://example.com/replace-with-x-url' },
+  LinkedIn: { icon: 'linkedin', url: 'https://example.com/replace-with-linkedin-url' },
+  YouTube: { icon: 'youtube', url: 'https://example.com/replace-with-youtube-url' }
 };
 
 // Utility Functions
@@ -317,6 +333,41 @@ async function loadAdminOverview() {
     console.error('Failed to load admin overview:', error);
     hideElement(adminDashboard);
   }
+
+  if (footerAuthBtn) {
+    footerAuthBtn.textContent = token && currentUser ? 'Log Out' : 'Log In';
+  }
+}
+
+function getAvailableTools() {
+  return [...document.querySelectorAll('.tool-card')].map(card => ({
+    id: card.dataset.tool,
+    name: card.dataset.name,
+    icon: card.querySelector('[data-lucide]')?.dataset.lucide || 'file-text'
+  }));
+}
+
+function closeToolsMenu() {
+  if (!toolsMenuButton || !toolsMenuList) return;
+  toolsMenuButton.setAttribute('aria-expanded', 'false');
+  toolsMenuList.classList.remove('is-open');
+}
+
+function renderSiteNavigation() {
+  const tools = getAvailableTools();
+  const toolItems = tools.map(tool => `<button type="button" role="menuitem" class="tool-menu-item" data-tool-launch="${tool.id}"><i data-lucide="${tool.icon}" aria-hidden="true"></i><span>${tool.name}</span></button>`).join('');
+  toolsMenuList.innerHTML = toolItems;
+  footerToolList.innerHTML = tools.map(tool => `<li><button type="button" class="footer-link" data-tool-launch="${tool.id}">${tool.name}</button></li>`).join('');
+  footerSocialLinks.innerHTML = Object.entries(SOCIAL_LINKS).map(([name, social]) => `<a href="${social.url}" target="_blank" rel="noopener noreferrer" aria-label="${name} (replace placeholder URL)"><i data-lucide="${social.icon}" aria-hidden="true"></i></a>`).join('');
+  footerYear.textContent = new Date().getFullYear();
+
+  document.querySelectorAll('[data-tool-launch]').forEach(button => {
+    button.addEventListener('click', () => {
+      const toolCard = document.querySelector(`.tool-card[data-tool="${button.dataset.toolLaunch}"]`);
+      closeToolsMenu();
+      if (toolCard) selectTool(toolCard);
+    });
+  });
 }
 
 async function loadAdminUsers(search = '') {
@@ -1097,6 +1148,7 @@ function showDownload(output) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  renderSiteNavigation();
   if (window.lucide) {
     window.lucide.createIcons();
   }
@@ -1158,6 +1210,19 @@ document.addEventListener('DOMContentLoaded', () => {
   registerBtn.addEventListener('click', () => openAuthModal(false));
   logoutBtn.addEventListener('click', logout);
   upgradeBtn.addEventListener('click', () => openUpgradeModal('Upgrade to Pro', 'Unlock bigger files, higher limits, and priority processing.'));
+  toolsMenuButton.addEventListener('click', () => {
+    const isOpen = toolsMenuButton.getAttribute('aria-expanded') === 'true';
+    toolsMenuButton.setAttribute('aria-expanded', String(!isOpen));
+    toolsMenuList.classList.toggle('is-open', !isOpen);
+  });
+  footerPricingBtn.addEventListener('click', () => openUpgradeModal('Plans & access'));
+  footerAuthBtn.addEventListener('click', () => {
+    if (getAuthToken() && currentUser) {
+      logout();
+    } else {
+      openAuthModal(true);
+    }
+  });
 
   // Auth modal
   closeModal.addEventListener('click', closeAuthModal);
@@ -1210,9 +1275,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeToolsMenu();
     if (e.key === 'Escape' && uploadSection.classList.contains('is-open')) {
       closeUploadPanel();
     }
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.tools-menu')) closeToolsMenu();
   });
 
   // Initialize

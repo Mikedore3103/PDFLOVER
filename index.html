@@ -22,7 +22,12 @@
         </div>
       </div>
       <nav class="main-nav" aria-label="Main navigation">
-        <a href="#tools">Tools</a>
+        <div class="tools-menu">
+          <button id="toolsMenuButton" class="tools-menu-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="toolsMenuList">
+            Tools <i data-lucide="chevron-down" aria-hidden="true"></i>
+          </button>
+          <div id="toolsMenuList" class="tools-menu-list" role="menu" aria-label="Document tools"></div>
+        </div>
         <a href="#uploadSection">Workspace</a>
       </nav>
       <div class="auth-section">
@@ -214,6 +219,36 @@
       </div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <section class="footer-brand" aria-labelledby="footerBrandName">
+        <div class="footer-brand-lockup">
+          <span class="footer-brand-mark"><i data-lucide="file-stack" aria-hidden="true"></i></span>
+          <strong id="footerBrandName">File Tools</strong>
+        </div>
+        <p>Fast, focused tools for the files that matter.</p>
+      </section>
+      <section class="footer-section" aria-labelledby="footerToolsTitle">
+        <h2 id="footerToolsTitle">Tools</h2>
+        <ul id="footerToolList" class="footer-link-list"></ul>
+      </section>
+      <section class="footer-section" aria-labelledby="footerNavigateTitle">
+        <h2 id="footerNavigateTitle">Navigate</h2>
+        <ul class="footer-link-list">
+          <li><button id="footerPricingBtn" class="footer-link" type="button">Pricing</button></li>
+          <li><button id="footerAuthBtn" class="footer-link" type="button">Log In</button></li>
+        </ul>
+      </section>
+      <section class="footer-section" aria-labelledby="footerSocialTitle">
+        <h2 id="footerSocialTitle">Follow along</h2>
+        <div id="footerSocialLinks" class="footer-social-links"></div>
+      </section>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; <span id="footerYear"></span> File Tools. All rights reserved.</p>
+    </div>
+  </footer>
 
   <div id="uploadBackdrop" class="upload-backdrop"></div>
 
