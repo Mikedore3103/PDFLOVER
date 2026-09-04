@@ -382,7 +382,8 @@ function renderSiteNavigation() {
   const tools = getAvailableTools();
   const toolItems = tools.map(tool => `<button type="button" role="menuitem" class="tool-menu-item" data-tool-launch="${tool.id}"><i data-lucide="${tool.icon}" aria-hidden="true"></i><span>${tool.name}</span></button>`).join('');
   toolsMenuList.innerHTML = toolItems;
-  footerToolList.innerHTML = tools.map(tool => `<li><button type="button" class="footer-link" data-tool-launch="${tool.id}">${tool.name}</button></li>`).join('');
+  // Keep the footer compact; the header dropdown remains the complete list.
+  footerToolList.innerHTML = tools.slice(0, 8).map(tool => `<li><button type="button" class="footer-link" data-tool-launch="${tool.id}">${tool.name}</button></li>`).join('');
   footerSocialLinks.innerHTML = Object.entries(SOCIAL_LINKS).map(([name, social]) => `<a class="social-mark ${social.mark}" href="${social.url}" target="_blank" rel="noopener noreferrer" aria-label="${name} (replace placeholder URL)"><span aria-hidden="true">${social.mark === 'instagram' ? '◎' : social.mark === 'x' ? '𝕏' : social.mark === 'facebook' ? 'f' : 'in'}</span></a>`).join('');
   footerYear.textContent = new Date().getFullYear();
 
@@ -713,7 +714,6 @@ async function handleAuthSubmit(e) {
       setAuthToken(data.token);
       await loadUserProfile();
       closeAuthModal();
-      alert(`Welcome${!isLoginMode ? ', your account has been created' : ''}!`);
     } else {
       alert(data.message || 'Authentication failed');
       if (isLoginMode) resetHumanVerification();

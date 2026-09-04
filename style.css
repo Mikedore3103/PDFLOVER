@@ -1576,7 +1576,7 @@ h1, h2, h3, .brand {
 .footer-brand p { max-width: 18rem; margin: 0.85rem 0 0; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
 .footer-section h2 { margin: 0 0 0.85rem; font-size: 0.86rem; font-family: "DM Sans", sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .footer-link-list { display: grid; gap: 0.2rem; margin: 0; padding: 0; list-style: none; }
-#footerToolList { grid-auto-flow: column; grid-template-rows: repeat(5, min-content); grid-auto-columns: minmax(6.5rem, max-content); column-gap: 1.25rem; }
+#footerToolList { grid-auto-flow: column; grid-template-rows: repeat(4, min-content); grid-auto-columns: minmax(6.5rem, max-content); column-gap: 1.25rem; }
 .footer-link { padding: 0.25rem 0; border: 0; background: transparent; color: rgba(255,255,255,0.85); font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
 .footer-link:hover, .footer-link:focus-visible { color: #fff; }
 .footer-social-links { display: flex; flex-wrap: wrap; gap: 0.7rem; }
