@@ -6,7 +6,10 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY file-tools-app/package.json file-tools-app/package-lock.json ./file-tools-app/
-RUN npm --prefix file-tools-app ci --omit=dev
+# The checked-in lockfile predates several production conversion dependencies.
+# `npm install` resolves package.json during the image build; refresh the lock
+# file separately when Node is available in a development environment.
+RUN npm --prefix file-tools-app install --omit=dev
 
 COPY . .
 WORKDIR /app/file-tools-app
