@@ -175,7 +175,7 @@ function paymentValidationFailure(verifiedData, pending, user) {
   if (!amountsMatch(verifiedData.amount, pending.amount)) return `Amount mismatch: expected ${pending.amount}, received ${verifiedData.amount}.`;
   if (String(verifiedData.currency || '').toUpperCase() !== pending.currency) return `Currency mismatch: expected ${pending.currency}, received ${verifiedData.currency}.`;
   if (verifiedData.customer?.email && verifiedData.customer.email.toLowerCase() !== user.email.toLowerCase()) {
-    return 'Customer email did not match the account that started checkout.';
+    console.warn(`Flutterwave customer email mismatch for ${pending.reference}: account=${user.email}, flutterwave=${verifiedData.customer.email}`);
   }
   return null;
 }
