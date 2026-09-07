@@ -8,10 +8,21 @@ const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
 
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Mikedore:Justice6799@cluster0.isui1y2.mongodb.net/file-tools-app';
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/file-tools-app';
+
+async function connectToDatabase() {
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000
+    });
+    console.log('Connected to MongoDB');
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    console.error('Set MONGODB_URI in Render to your MongoDB Atlas connection string for authentication to work.');
+  }
+}
 
 // Start the conversion worker
 // require('./workers/conversionWorker');
@@ -65,9 +76,14 @@ app.use((err, req, res, next) => {
   return errorResponse(res, err.message || 'Internal server error.', err.statusCode || 500);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-});
+async function startServer() {
+  await connectToDatabase();
+  app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
+  });
+}
+
+startServer();
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {

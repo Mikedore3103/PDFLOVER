@@ -6,6 +6,7 @@
  */
 
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { errorResponse } = require('../utils/responseHandler');
 
@@ -98,6 +99,14 @@ function validateUserFileSize(files, userPlan) {
  * @param {Object} req - Express request object
  * @returns {Object|null} Decoded token payload or null if invalid
  */
+function ensureDatabaseAvailable() {
+  if (mongoose.connection.readyState !== 1) {
+    const error = new Error('Database is currently unavailable. Please try again shortly.');
+    error.statusCode = 503;
+    throw error;
+  }
+}
+
 function getUserFromToken(req) {
   try {
     const authHeader = req.headers.authorization;
@@ -124,6 +133,8 @@ async function usageLimiter(req, res, next) {
       // No valid token - this will fall through to guest limiter
       return next();
     }
+
+    ensureDatabaseAvailable();
 
     // Find user in database
     const user = await User.findById(tokenPayload.userId);
@@ -164,7 +175,7 @@ async function usageLimiter(req, res, next) {
 
     next();
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 
@@ -191,6 +202,8 @@ async function requirePro(req, res, next) {
   try {
     const tokenPayload = getUserFromToken(req);
 
+    ensureDatabaseAvailable();
+
     if (!tokenPayload) {
       return errorResponse(res, 'Authentication required', 401);
     }
@@ -203,7 +216,7 @@ async function requirePro(req, res, next) {
     req.user = user;
     next();
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 

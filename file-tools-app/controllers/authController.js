@@ -5,6 +5,7 @@
  */
 
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
@@ -60,6 +61,14 @@ function generateToken(user) {
   );
 }
 
+function ensureDatabaseAvailable() {
+  if (mongoose.connection.readyState !== 1) {
+    const error = new Error('Database is currently unavailable. Please try again shortly.');
+    error.statusCode = 503;
+    throw error;
+  }
+}
+
 /**
  * Register a new user
  */
@@ -79,6 +88,8 @@ async function register(req, res) {
     if (!EMAIL_VERIFY_DISABLED && !isEmailVerified(email)) {
       return errorResponse(res, 'Please verify your email before signing up.', 400);
     }
+
+    ensureDatabaseAvailable();
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
@@ -108,7 +119,7 @@ async function register(req, res) {
       }
     });
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 
@@ -123,6 +134,8 @@ async function login(req, res) {
     if (!email || !password) {
       return errorResponse(res, 'Email and password are required', 400);
     }
+
+    ensureDatabaseAvailable();
 
     // Find user
     const user = await User.findByEmail(email);
@@ -150,7 +163,7 @@ async function login(req, res) {
       }
     });
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 
@@ -159,6 +172,8 @@ async function login(req, res) {
  */
 async function getProfile(req, res) {
   try {
+    ensureDatabaseAvailable();
+
     const user = await User.findById(req.userId);
     if (!user) {
       return errorResponse(res, 'User not found', 404);
@@ -175,7 +190,7 @@ async function getProfile(req, res) {
       }
     });
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 
@@ -184,6 +199,8 @@ async function getProfile(req, res) {
  */
 async function updatePlan(req, res) {
   try {
+    ensureDatabaseAvailable();
+
     const { plan } = req.body;
 
     if (!['free', 'pro'].includes(plan)) {
@@ -211,7 +228,7 @@ async function updatePlan(req, res) {
       }
     });
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 
@@ -262,7 +279,7 @@ async function sendVerification(req, res) {
 
     return successResponse(res, { message: 'Verification code sent.' });
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 

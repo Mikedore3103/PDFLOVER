@@ -78,6 +78,7 @@ let emailVerified = false;
 // Premium tools
 const PREMIUM_TOOLS = ['compress-pdf', 'ocr-pdf', 'batch-convert'];
 
+
 // File picker accept rules per tool
 const TOOL_ACCEPT = {
   'merge-pdf': '.pdf',
