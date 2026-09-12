@@ -16,8 +16,8 @@ if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured.');
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const EMAIL_VERIFY_DISABLED = process.env.EMAIL_VERIFY_DISABLED === 'true';
 const EMAIL_VERIFY_DEV_MODE = process.env.EMAIL_VERIFY_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
-const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
-const MAILERSEND_FROM = process.env.MAILERSEND_FROM;
+const BREVO_API_KEY = process.env.BREVO_API_KEY?.trim();
+const BREVO_FROM = process.env.BREVO_FROM?.trim();
 const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY;
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
 const TURNSTILE_ENABLED = Boolean(TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY);
@@ -288,46 +288,54 @@ async function sendVerification(req, res) {
     }
 
     const code = generateCode();
-    storeVerificationCode(email, code);
 
-    if (!MAILERSEND_API_KEY || !MAILERSEND_FROM) {
+    if (!BREVO_API_KEY || !BREVO_FROM) {
       if (!EMAIL_VERIFY_DEV_MODE) {
         return errorResponse(res, 'Email verification is not configured.', 503);
       }
+      storeVerificationCode(email, code);
       return successResponse(res, {
-        message: 'Verification configured for development. MAILERSEND_API_KEY/MAILERSEND_FROM not set.',
+        message: 'Verification configured for development. BREVO_API_KEY/BREVO_FROM not set.',
         code
       });
     }
 
-    const mailersendResponse = await fetch('https://api.mailersend.com/v1/email', {
+    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
+      signal: AbortSignal.timeout(15000),
       headers: {
-        'Authorization': `Bearer ${MAILERSEND_API_KEY}`,
+        'api-key': BREVO_API_KEY,
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
-        from: {
-          email: MAILERSEND_FROM
+        sender: {
+          name: 'PDFLOVER',
+          email: BREVO_FROM
         },
         to: [
           { email }
         ],
         subject: 'Your verification code',
-        html: `<p>Your verification code is <strong>${code}</strong>. It expires in 10 minutes.</p>`,
-        text: `Your verification code is ${code}. It expires in 10 minutes.`
+        htmlContent: `<p>Your verification code is <strong>${code}</strong>. It expires in 10 minutes.</p>`
       })
     });
 
-    if (!mailersendResponse.ok) {
-      const errorBody = await mailersendResponse.text();
-      return errorResponse(res, `Email send failed: ${errorBody}`, 502);
+    if (!brevoResponse.ok) {
+      // Keep provider details out of public responses and never log the API token.
+      if (brevoResponse.status === 401 || brevoResponse.status === 403) {
+        console.error(`Brevo rejected email authentication/authorization (HTTP ${brevoResponse.status}). Check BREVO_API_KEY validity and Brevo account permissions.`);
+        return errorResponse(res, 'Email verification is temporarily unavailable. Please try again later.', 503);
+      }
+      console.error(`Brevo email request failed (HTTP ${brevoResponse.status}). Check the provider API logs.`);
+      return errorResponse(res, 'Could not send the verification email. Please try again later.', 502);
     }
 
+    storeVerificationCode(email, code);
     return successResponse(res, { message: 'Verification code sent.' });
   } catch (error) {
-    return errorResponse(res, error.message, 500);
+    console.error('Brevo email request failed before completion.');
+    return errorResponse(res, 'Could not send the verification email. Please try again later.', 502);
   }
 }
 
