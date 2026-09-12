@@ -457,7 +457,7 @@ function renderSubscriptionDashboard() {
   dashboardPlan.textContent = planCode.toUpperCase();
   dashboardUsage.textContent = plan?.dailyConversionLimit === -1
     ? 'Unlimited conversions'
-    : `${currentUser.dailyUsageCount || 0} / ${plan?.dailyConversionLimit ?? 10} conversions used today`;
+    : `${currentUser.dailyUsageCount || 0} / ${plan?.dailyConversionLimit ?? 3} conversions used today`;
   subscriptionStatus.textContent = String(subscription.status || 'inactive').replace('_', ' ');
   subscriptionStatus.className = `subscription-status status-${subscription.status || 'inactive'}`;
   subscriptionStarted.textContent = formatDate(subscription.startedAt);

@@ -2,8 +2,8 @@
  * Guest Usage Limiter Middleware
  *
  * Tracks guest user conversions using IP address as identifier.
- * Limits: 10 conversions per day, 10MB max file size.
- * Resets daily at midnight.
+ * Limits: 3 conversions per day, 10MB max file size.
+ * Resets 24 hours after the first conversion in each usage window.
  */
 
 const { errorResponse } = require('../utils/responseHandler');
@@ -16,7 +16,7 @@ const RESET_INTERVAL = 24 * 60 * 60 * 1000;
 
 // Guest limits
 const GUEST_LIMITS = {
-  maxConversions: 10,
+  maxConversions: 3,
   maxFileSize: 10 * 1024 * 1024, // 10MB
   resetInterval: RESET_INTERVAL
 };
@@ -99,7 +99,7 @@ function guestLimiter(req, res, next) {
 
     // Check conversion limit
     if (isGuestLimitExceeded(clientIP)) {
-      return errorResponse(res, 'Free usage limit reached. Create a free account for higher limits.', 429);
+      return errorResponse(res, 'You have reached your 3 free conversions for today. Upgrade to Pro for higher daily limits.', 429);
     }
 
     // Validate file sizes

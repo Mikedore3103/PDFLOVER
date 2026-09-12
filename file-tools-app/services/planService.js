@@ -14,7 +14,7 @@ async function initializePlans() {
       code: 'free',
       name: 'Free',
       price: 0,
-      dailyConversionLimit: 10,
+      dailyConversionLimit: 3,
       active: true
     },
     {

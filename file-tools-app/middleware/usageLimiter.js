@@ -184,7 +184,7 @@ async function usageLimiter(req, res, next) {
     reservation = await reserveConversion(user, effectivePlan);
     if (!reservation) {
       const message = effectivePlan.code === 'free'
-        ? "You've reached your 10 free conversions for today. Upgrade to Pro for up to 100 conversions per day or Premium for unlimited conversions."
+        ? "You've reached your 3 free conversions for today. Upgrade to Pro for up to 100 conversions per day or Premium for unlimited conversions."
         : "You've reached your 100 daily conversions. Upgrade to Premium for unlimited conversions.";
       return errorResponse(res, message, 429, {
         plan: effectivePlan.code,
