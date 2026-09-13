@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { notifySubscription } = require('./adminNotificationService');
 const mongoose = require('mongoose');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const Subscription = require('../models/Subscription');
@@ -260,6 +261,7 @@ async function processWebhook(payload) {
   let activated = false;
   try {
     await session.withTransaction(async () => {
+      activated = false; // Transaction callbacks may be retried after a write conflict.
       const claimed = await PaymentTransaction.findOneAndUpdate(
         { _id: pending._id, status: { $ne: 'successful' } },
         { $set: { status: 'successful', paidAt: now, providerReference: verifiedData } },
@@ -308,6 +310,8 @@ async function processWebhook(payload) {
     await WebhookEvent.updateOne({ provider: 'flutterwave', eventId }, { $set: { processedAt: new Date() } });
     return { duplicate: true };
   }
+  // Only the transaction that committed the activation sends the owner alert.
+  await notifySubscription(user, pending, expiresAt, now);
   return { valid: true };
 }
 

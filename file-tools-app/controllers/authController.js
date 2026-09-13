@@ -5,6 +5,7 @@
  */
 
 const jwt = require('jsonwebtoken');
+const { notifySignup } = require('../services/adminNotificationService');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
 const PaymentTransaction = require('../models/PaymentTransaction');
@@ -143,6 +144,7 @@ async function register(req, res) {
     });
 
     await user.save();
+    await notifySignup(user);
 
     // Generate token
     const token = generateToken(user);
