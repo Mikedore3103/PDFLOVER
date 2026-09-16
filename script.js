@@ -134,13 +134,9 @@ const TOOL_ACCEPT = {
   'powerpoint-to-pdf': '.ppt,.pptx'
 };
 
-// Replace these clearly labelled placeholder URLs with File Tools' real social profiles.
-const SOCIAL_LINKS = {
-  Instagram: { mark: 'instagram', url: 'https://example.com/replace-with-instagram-url' },
-  X: { mark: 'x', url: 'https://example.com/replace-with-x-url' },
-  Facebook: { mark: 'facebook', url: 'https://example.com/replace-with-facebook-url' },
-  LinkedIn: { mark: 'linkedin', url: 'https://example.com/replace-with-linkedin-url' }
-};
+// Add verified social profiles here when they are available. Keeping this
+// empty prevents placeholder links from being shown to visitors.
+const SOCIAL_LINKS = {};
 
 // Utility Functions
 function formatFileSize(bytes) {
@@ -385,7 +381,7 @@ function renderSiteNavigation() {
   toolsMenuList.innerHTML = toolItems;
   // Keep the footer compact; the header dropdown remains the complete list.
   footerToolList.innerHTML = tools.slice(0, 8).map(tool => `<li><button type="button" class="footer-link" data-tool-launch="${tool.id}">${tool.name}</button></li>`).join('');
-  footerSocialLinks.innerHTML = Object.entries(SOCIAL_LINKS).map(([name, social]) => `<a class="social-mark ${social.mark}" href="${social.url}" target="_blank" rel="noopener noreferrer" aria-label="${name} (replace placeholder URL)"><span aria-hidden="true">${social.mark === 'instagram' ? '◎' : social.mark === 'x' ? '𝕏' : social.mark === 'facebook' ? 'f' : 'in'}</span></a>`).join('');
+  footerSocialLinks.innerHTML = Object.entries(SOCIAL_LINKS).map(([name, social]) => `<a class="social-mark ${social.mark}" href="${social.url}" target="_blank" rel="noopener noreferrer" aria-label="${name}"><span aria-hidden="true">${social.mark === 'instagram' ? '◎' : social.mark === 'x' ? '𝕏' : social.mark === 'facebook' ? 'f' : 'in'}</span></a>`).join('');
   footerYear.textContent = new Date().getFullYear();
 
   document.querySelectorAll('[data-tool-launch]').forEach(button => {

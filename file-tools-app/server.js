@@ -16,8 +16,7 @@ if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
 }
 
 // Connect to MongoDB
-<<<<<<< HEAD
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/file-tools-app';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function connectToDatabase() {
   try {
@@ -27,21 +26,14 @@ async function connectToDatabase() {
       socketTimeoutMS: 45000
     });
     console.log('Connected to MongoDB');
+    await initializePlans();
+    console.log('Subscription plans initialized');
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
     console.error('Set MONGODB_URI in Render to your MongoDB Atlas connection string for authentication to work.');
+    throw err;
   }
 }
-=======
-const MONGODB_URI = process.env.MONGODB_URI;
-mongoose.connect(MONGODB_URI)
-  .then(async () => {
-    console.log('Connected to MongoDB');
-    await initializePlans();
-    console.log('Subscription plans initialized');
-  })
-  .catch(err => console.error('MongoDB connection error:', err));
->>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
 
 // Start the conversion worker
 // require('./workers/conversionWorker');

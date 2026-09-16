@@ -5,11 +5,8 @@
  */
 
 const jwt = require('jsonwebtoken');
-<<<<<<< HEAD
 const mongoose = require('mongoose');
-=======
 const { notifySignup } = require('../services/adminNotificationService');
->>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
 const User = require('../models/User');
 const Plan = require('../models/Plan');
 const PaymentTransaction = require('../models/PaymentTransaction');
@@ -191,14 +188,12 @@ async function login(req, res) {
       return errorResponse(res, 'Email and password are required', 400);
     }
 
-<<<<<<< HEAD
     ensureDatabaseAvailable();
-=======
+
     const humanVerification = await verifyHumanToken(turnstileToken, req.ip);
     if (!humanVerification.success) {
       return errorResponse(res, humanVerification.message, 400);
     }
->>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
 
     // Find user
     const user = await User.findByEmail(email);
@@ -300,47 +295,6 @@ async function getProfile(req, res) {
 }
 
 /**
-<<<<<<< HEAD
- * Update user plan (for admin or payment processing)
- */
-async function updatePlan(req, res) {
-  try {
-    ensureDatabaseAvailable();
-
-    const { plan } = req.body;
-
-    if (!['free', 'pro'].includes(plan)) {
-      return errorResponse(res, 'Invalid plan type', 400);
-    }
-
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return errorResponse(res, 'User not found', 404);
-    }
-
-    user.plan = plan;
-    await user.save();
-
-    // Generate new token with updated plan
-    const token = generateToken(user);
-
-    return successResponse(res, {
-      message: 'Plan updated successfully',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        plan: user.plan
-      }
-    });
-  } catch (error) {
-    return errorResponse(res, error.message, error.statusCode || 500);
-  }
-}
-
-/**
-=======
->>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
  * Send email verification code
  */
 async function sendVerification(req, res) {
@@ -397,12 +351,8 @@ async function sendVerification(req, res) {
     storeVerificationCode(email, code);
     return successResponse(res, { message: 'Verification code sent.' });
   } catch (error) {
-<<<<<<< HEAD
-    return errorResponse(res, error.message, error.statusCode || 500);
-=======
     console.error('Brevo email request failed before completion.');
     return errorResponse(res, 'Could not send the verification email. Please try again later.', 502);
->>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
   }
 }
 

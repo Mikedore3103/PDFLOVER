@@ -5,3 +5,10 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api
+    envVars:
+      - key: FRONTEND_ORIGIN
+        value: https://pdflovers.name.ng
+      - key: FLW_FRONTEND_URL
+        value: https://pdflovers.name.ng/
+      - key: FLW_REDIRECT_URL
+        value: https://pdflover-1.onrender.com/api/billing/callback

@@ -222,12 +222,8 @@ async function usageLimiter(req, res, next) {
 
     next();
   } catch (error) {
-<<<<<<< HEAD
-    return errorResponse(res, error.message, error.statusCode || 500);
-=======
     if (reservation) await reservation.release();
-    return errorResponse(res, error.message, 500);
->>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
+    return errorResponse(res, error.message, error.statusCode || 500);
   }
 }
 
