@@ -5,16 +5,27 @@
  */
 
 const jwt = require('jsonwebtoken');
+<<<<<<< HEAD
 const mongoose = require('mongoose');
+=======
+const { notifySignup } = require('../services/adminNotificationService');
+>>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
 const User = require('../models/User');
+const Plan = require('../models/Plan');
+const PaymentTransaction = require('../models/PaymentTransaction');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
 
 // JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured.');
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const EMAIL_VERIFY_DISABLED = process.env.EMAIL_VERIFY_DISABLED === 'true';
-const MAILERSEND_API_KEY = process.env.MAILERSEND_API_KEY;
-const MAILERSEND_FROM = process.env.MAILERSEND_FROM;
+const EMAIL_VERIFY_DEV_MODE = process.env.EMAIL_VERIFY_DEV_MODE === 'true' && process.env.NODE_ENV !== 'production';
+const BREVO_API_KEY = process.env.BREVO_API_KEY?.trim();
+const BREVO_FROM = process.env.BREVO_FROM?.trim();
+const TURNSTILE_SITE_KEY = process.env.TURNSTILE_SITE_KEY;
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
+const TURNSTILE_ENABLED = Boolean(TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY);
 
 // In-memory email verification storage (for MVP; replace with DB/Redis in production)
 const verificationCodes = new Map();
@@ -42,6 +53,31 @@ function isEmailVerified(email) {
     return false;
   }
   return true;
+}
+
+async function verifyHumanToken(token, remoteIp) {
+  if (!TURNSTILE_ENABLED) return { success: true, skipped: true };
+  if (!token) return { success: false, message: 'Please complete human verification.' };
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: TURNSTILE_SECRET_KEY,
+        response: token,
+        ...(remoteIp ? { remoteip: remoteIp } : {})
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      return { success: false, message: 'Human verification failed. Please try again.' };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Turnstile verification failed:', error.message);
+    return { success: false, message: 'Human verification failed. Please try again.' };
+  }
 }
 
 /**
@@ -74,11 +110,16 @@ function ensureDatabaseAvailable() {
  */
 async function register(req, res) {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
+    const normalizedUsername = typeof username === 'string' ? username.trim() : '';
 
     // Validate input
-    if (!email || !password) {
-      return errorResponse(res, 'Email and password are required', 400);
+    if (!normalizedUsername || !email || !password) {
+      return errorResponse(res, 'Username, email and password are required', 400);
+    }
+
+    if (!/^[A-Za-z0-9_-]{3,30}$/.test(normalizedUsername)) {
+      return errorResponse(res, 'Username must be 3–30 characters and use only letters, numbers, underscores, or hyphens', 400);
     }
 
     if (password.length < 6) {
@@ -97,14 +138,27 @@ async function register(req, res) {
       return errorResponse(res, 'User with this email already exists', 409);
     }
 
+    const existingUsername = await User.findOne({ username: normalizedUsername });
+    if (existingUsername) {
+      return errorResponse(res, 'This username is already taken', 409);
+    }
+
     // Create new user
+    const freePlan = await Plan.findOne({ code: 'free', active: true });
+    if (!freePlan) {
+      return errorResponse(res, 'FREE plan is not configured', 503);
+    }
+
     const user = new User({
+      username: normalizedUsername,
       email,
       password,
-      plan: 'free' // Default to free plan
+      plan: 'free',
+      currentPlan: freePlan._id
     });
 
     await user.save();
+    await notifySignup(user);
 
     // Generate token
     const token = generateToken(user);
@@ -114,7 +168,9 @@ async function register(req, res) {
       token,
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
+        role: user.role,
         plan: user.plan
       }
     });
@@ -128,14 +184,21 @@ async function register(req, res) {
  */
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
 
     // Validate input
     if (!email || !password) {
       return errorResponse(res, 'Email and password are required', 400);
     }
 
+<<<<<<< HEAD
     ensureDatabaseAvailable();
+=======
+    const humanVerification = await verifyHumanToken(turnstileToken, req.ip);
+    if (!humanVerification.success) {
+      return errorResponse(res, humanVerification.message, 400);
+    }
+>>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
 
     // Find user
     const user = await User.findByEmail(email);
@@ -157,7 +220,9 @@ async function login(req, res) {
       token,
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
+        role: user.role,
         plan: user.plan,
         dailyUsageCount: user.dailyUsageCount
       }
@@ -165,6 +230,15 @@ async function login(req, res) {
   } catch (error) {
     return errorResponse(res, error.message, error.statusCode || 500);
   }
+}
+
+function getSecurityConfig(req, res) {
+  return successResponse(res, {
+    turnstile: {
+      enabled: TURNSTILE_ENABLED,
+      siteKey: TURNSTILE_ENABLED ? TURNSTILE_SITE_KEY : null
+    }
+  });
 }
 
 /**
@@ -179,13 +253,44 @@ async function getProfile(req, res) {
       return errorResponse(res, 'User not found', 404);
     }
 
+    const assignedPlan = await Plan.findOne({ _id: user.currentPlan, active: true }).lean();
+    const subscriptionExpired = user.subscriptionExpiresAt && user.subscriptionExpiresAt <= new Date();
+    const paidSubscriptionActive = assignedPlan && assignedPlan.code !== 'free'
+      && user.subscriptionStatus === 'active' && !subscriptionExpired;
+    const effectivePlan = paidSubscriptionActive ? assignedPlan : await Plan.findOne({ code: 'free', active: true }).lean();
+    const latestPayment = await PaymentTransaction.findOne({ user: user._id })
+      .sort({ paidAt: -1 })
+      .select('amount currency paidAt status createdAt')
+      .lean();
+    const effectiveStatus = subscriptionExpired ? 'expired' : (user.subscriptionStatus || 'inactive');
+
     return successResponse(res, {
       user: {
         id: user._id,
+        username: user.username,
         email: user.email,
-        plan: user.plan,
+        role: user.role,
+        plan: effectivePlan?.code || 'free',
         dailyUsageCount: user.dailyUsageCount,
         lastUsageReset: user.lastUsageReset,
+        currentPlan: user.currentPlan,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionStartedAt: user.subscriptionStartedAt,
+        subscriptionExpiresAt: user.subscriptionExpiresAt,
+        lastSuccessfulPaymentAt: user.lastSuccessfulPaymentAt,
+        planDetails: effectivePlan ? {
+          code: effectivePlan.code,
+          name: effectivePlan.name,
+          price: effectivePlan.price,
+          currency: effectivePlan.currency,
+          dailyConversionLimit: effectivePlan.dailyConversionLimit
+        } : null,
+        subscription: {
+          status: effectiveStatus,
+          startedAt: user.subscriptionStartedAt,
+          expiresAt: user.subscriptionExpiresAt,
+          lastPayment: latestPayment
+        },
         createdAt: user.createdAt
       }
     });
@@ -195,6 +300,7 @@ async function getProfile(req, res) {
 }
 
 /**
+<<<<<<< HEAD
  * Update user plan (for admin or payment processing)
  */
 async function updatePlan(req, res) {
@@ -233,6 +339,8 @@ async function updatePlan(req, res) {
 }
 
 /**
+=======
+>>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
  * Send email verification code
  */
 async function sendVerification(req, res) {
@@ -243,43 +351,58 @@ async function sendVerification(req, res) {
     }
 
     const code = generateCode();
-    storeVerificationCode(email, code);
 
-    if (!MAILERSEND_API_KEY || !MAILERSEND_FROM) {
+    if (!BREVO_API_KEY || !BREVO_FROM) {
+      if (!EMAIL_VERIFY_DEV_MODE) {
+        return errorResponse(res, 'Email verification is not configured.', 503);
+      }
+      storeVerificationCode(email, code);
       return successResponse(res, {
-        message: 'Verification configured for development. MAILERSEND_API_KEY/MAILERSEND_FROM not set.',
+        message: 'Verification configured for development. BREVO_API_KEY/BREVO_FROM not set.',
         code
       });
     }
 
-    const mailersendResponse = await fetch('https://api.mailersend.com/v1/email', {
+    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
+      signal: AbortSignal.timeout(15000),
       headers: {
-        'Authorization': `Bearer ${MAILERSEND_API_KEY}`,
+        'api-key': BREVO_API_KEY,
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
-        from: {
-          email: MAILERSEND_FROM
+        sender: {
+          name: 'PDFLOVER',
+          email: BREVO_FROM
         },
         to: [
           { email }
         ],
         subject: 'Your verification code',
-        html: `<p>Your verification code is <strong>${code}</strong>. It expires in 10 minutes.</p>`,
-        text: `Your verification code is ${code}. It expires in 10 minutes.`
+        htmlContent: `<p>Your verification code is <strong>${code}</strong>. It expires in 10 minutes.</p>`
       })
     });
 
-    if (!mailersendResponse.ok) {
-      const errorBody = await mailersendResponse.text();
-      return errorResponse(res, `Email send failed: ${errorBody}`, 502);
+    if (!brevoResponse.ok) {
+      // Keep provider details out of public responses and never log the API token.
+      if (brevoResponse.status === 401 || brevoResponse.status === 403) {
+        console.error(`Brevo rejected email authentication/authorization (HTTP ${brevoResponse.status}). Check BREVO_API_KEY validity and Brevo account permissions.`);
+        return errorResponse(res, 'Email verification is temporarily unavailable. Please try again later.', 503);
+      }
+      console.error(`Brevo email request failed (HTTP ${brevoResponse.status}). Check the provider API logs.`);
+      return errorResponse(res, 'Could not send the verification email. Please try again later.', 502);
     }
 
+    storeVerificationCode(email, code);
     return successResponse(res, { message: 'Verification code sent.' });
   } catch (error) {
+<<<<<<< HEAD
     return errorResponse(res, error.message, error.statusCode || 500);
+=======
+    console.error('Brevo email request failed before completion.');
+    return errorResponse(res, 'Could not send the verification email. Please try again later.', 502);
+>>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
   }
 }
 
@@ -320,7 +443,7 @@ module.exports = {
   register,
   login,
   getProfile,
-  updatePlan,
+  getSecurityConfig,
   sendVerification,
   verifyEmail
 };

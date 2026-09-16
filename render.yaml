@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: pdflover
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api

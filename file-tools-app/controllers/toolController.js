@@ -1,4 +1,5 @@
 const multer = require('multer');
+const path = require('path');
 // const conversionQueue = require('../queues/conversionQueue');
 const { validateFiles } = require('../utils/fileValidator');
 const { successResponse, errorResponse } = require('../utils/responseHandler');
@@ -10,6 +11,17 @@ const jpgToPdfService = require('../services/jpgToPdfService');
 const mergePdfService = require('../services/mergePdfService');
 const splitPdfService = require('../services/splitPdfService');
 const compressPdfService = require('../services/compressPdfService');
+const pdfToWordService = require('../services/pdfToWordService');
+const pdfToExcelService = require('../services/pdfToExcelService');
+const pdfToPowerpointService = require('../services/pdfToPowerpointService');
+const { unlockPdfService, protectPdfService } = require('../services/qpdfService');
+const officeToPdfService = require('../services/officeToPdfService');
+const { randomUUID } = require('crypto');
+const crypto = require('crypto');
+
+const jobs = new Map();
+const conversionsDir = path.join(__dirname, '..', 'conversions');
+const ACCESS_SECRET = process.env.JWT_SECRET;
 
 const toolServices = {
   'pdf-to-jpg': pdfToJpgService,
@@ -17,10 +29,39 @@ const toolServices = {
   'merge-pdf': mergePdfService,
   'split-pdf': splitPdfService,
   'compress-pdf': compressPdfService,
+  'pdf-to-word': pdfToWordService,
+  'pdf-to-excel': pdfToExcelService,
+  'pdf-to-powerpoint': pdfToPowerpointService,
+  'unlock-pdf': unlockPdfService,
+  'protect-pdf': protectPdfService,
+  'word-to-pdf': files => officeToPdfService(files, { prefix: 'word' }),
+  'excel-to-pdf': files => officeToPdfService(files, { prefix: 'excel' }),
+  'powerpoint-to-pdf': files => officeToPdfService(files, { prefix: 'powerpoint' }),
 };
 
 function resolveToolName(req, overrideTool) {
   return overrideTool || req.body?.tool || req.params?.tool || '';
+}
+
+function createAccessToken(jobId, filename = '') {
+  return crypto.createHmac('sha256', ACCESS_SECRET).update(`${jobId}:${filename}`).digest('base64url');
+}
+
+function hasValidAccessToken(jobId, filename, token) {
+  if (!token) return false;
+  const expected = createAccessToken(jobId, filename);
+  const expectedBuffer = Buffer.from(expected);
+  const receivedBuffer = Buffer.from(token);
+  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+}
+
+function protectOutput(output, jobId) {
+  const protect = value => {
+    const filename = path.basename(String(value));
+    const token = createAccessToken(jobId, filename);
+    return `/api/tools/download/${encodeURIComponent(filename)}?jobId=${encodeURIComponent(jobId)}&token=${encodeURIComponent(token)}`;
+  };
+  return Array.isArray(output) ? output.map(protect) : protect(output);
 }
 
 async function processToolRequest(req, res, overrideTool) {
@@ -34,48 +75,28 @@ async function processToolRequest(req, res, overrideTool) {
     // Get the service
     const service = toolServices[tool];
     if (!service) {
+      if (req.releaseConversion) await req.releaseConversion();
       return errorResponse(res, `Unsupported tool: ${tool}`, 400);
     }
 
-    try {
-      // Execute the service
-      const output = await service(files);
+    const jobId = randomUUID();
+    jobs.set(jobId, { status: 'waiting', tool, ownerId: req.user?._id?.toString() || `guest:${req.ip}`, createdAt: Date.now() });
 
-      // Clean up uploaded files
-      await Promise.all(
-        files.map(async (file) => {
-          try {
-            await fs.unlink(file.path);
-          } catch (err) {
-            console.error(`Failed to cleanup: ${file.path}`, err);
-          }
-        })
-      );
+    // Keep conversion work out of the upload request. The client can poll this job.
+    const options = { password: req.body?.password || '' };
+    processJob(jobId, service, files, options, req.releaseConversion).catch((error) => {
+      console.error(`Job ${jobId} failed:`, error);
+    });
 
-      // Prepare response
-      const response = {
-        message: 'File processing completed.',
-        output,
-        userType: req.userType,
-      };
-
-      // Add user info for registered users
-      if (req.user) {
-        response.user = {
-          plan: req.user.plan,
-          dailyUsageCount: req.user.dailyUsageCount,
-          limits: req.userLimits
-        };
-      } else {
-        response.limits = req.userLimits;
-      }
-
-      return successResponse(res, response);
-    } catch (error) {
-      return errorResponse(res, error.message, error.statusCode || 500);
-    }
+    return successResponse(res, {
+      message: 'Upload received. Processing started.',
+      jobId,
+      jobToken: createAccessToken(jobId),
+      userType: req.userType,
+      limits: req.userLimits,
+    }, 202);
   } catch (err) {
-    // Note: File cleanup will be handled by the worker after processing
+    if (req.releaseConversion) await req.releaseConversion();
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         // This should be handled by middleware, but fallback here
@@ -86,6 +107,34 @@ async function processToolRequest(req, res, overrideTool) {
     }
 
     return errorResponse(res, err.message || 'Job submission failed.', err.statusCode || 500);
+  }
+}
+
+async function processJob(jobId, service, files, options, releaseConversion) {
+  const job = jobs.get(jobId);
+  if (!job) return;
+
+  job.status = 'active';
+  try {
+    job.output = protectOutput(await service(files, options), jobId);
+    job.status = 'completed';
+    job.completedAt = new Date().toISOString();
+  } catch (error) {
+    if (releaseConversion) await releaseConversion();
+    job.status = 'failed';
+    job.error = error.message;
+  } finally {
+    await Promise.all(files.map(async (file) => {
+      try {
+        await fs.unlink(file.path);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Failed to cleanup: ${file.path}`, error);
+        }
+      }
+    }));
+
+    setTimeout(() => jobs.delete(jobId), 60 * 60 * 1000).unref();
   }
 }
 
@@ -113,6 +162,30 @@ async function compressPdf(req, res) {
   return processToolRequest(req, res, 'compress-pdf');
 }
 
+async function pdfToWord(req, res) {
+  return processToolRequest(req, res, 'pdf-to-word');
+}
+
+async function pdfToExcel(req, res) {
+  return processToolRequest(req, res, 'pdf-to-excel');
+}
+
+async function pdfToPowerpoint(req, res) {
+  return processToolRequest(req, res, 'pdf-to-powerpoint');
+}
+
+async function unlockPdf(req, res) {
+  return processToolRequest(req, res, 'unlock-pdf');
+}
+
+async function protectPdf(req, res) {
+  return processToolRequest(req, res, 'protect-pdf');
+}
+
+async function wordToPdf(req, res) { return processToolRequest(req, res, 'word-to-pdf'); }
+async function excelToPdf(req, res) { return processToolRequest(req, res, 'excel-to-pdf'); }
+async function powerpointToPdf(req, res) { return processToolRequest(req, res, 'powerpoint-to-pdf'); }
+
 async function getJobStatus(req, res) {
   try {
     const { id } = req.params;
@@ -121,33 +194,51 @@ async function getJobStatus(req, res) {
       return errorResponse(res, 'Job ID is required', 400);
     }
 
-    // Get job from queue
-    const job = await conversionQueue.getJob(id);
+    const job = jobs.get(id);
 
     if (!job) {
       return errorResponse(res, 'Job not found', 404);
     }
 
-    const state = await job.getState();
+    if (!hasValidAccessToken(id, '', req.query.token)) {
+      return errorResponse(res, 'Invalid job access token.', 403);
+    }
 
     let response = {
       jobId: id,
-      status: state,
+      status: job.status,
     };
 
-    if (state === 'completed') {
-      const result = job.returnvalue;
-      response.output = result.output;
-      response.tool = result.tool;
-      response.completedAt = result.completedAt;
-    } else if (state === 'failed') {
-      response.error = job.failedReason;
+    if (job.status === 'completed') {
+      response.output = job.output;
+      response.tool = job.tool;
+      response.completedAt = job.completedAt;
+    } else if (job.status === 'failed') {
+      response.error = job.error;
     }
 
     return successResponse(res, response);
   } catch (err) {
     return errorResponse(res, err.message || 'Failed to get job status', 500);
   }
+}
+
+function downloadFile(req, res) {
+  const filename = path.basename(req.params.filename || '');
+  if (!filename || filename !== req.params.filename) {
+    return errorResponse(res, 'Invalid download filename.', 400);
+  }
+
+  if (!hasValidAccessToken(req.query.jobId, filename, req.query.token)) {
+    return errorResponse(res, 'Invalid download token.', 403);
+  }
+
+  const filePath = path.join(conversionsDir, filename);
+  return res.download(filePath, filename, (error) => {
+    if (error && !res.headersSent) {
+      return errorResponse(res, error.code === 'ENOENT' ? 'File not found.' : 'Download failed.', error.code === 'ENOENT' ? 404 : 500);
+    }
+  });
 }
 
 module.exports = {
@@ -157,5 +248,14 @@ module.exports = {
   mergePdf,
   splitPdf,
   compressPdf,
-  getJobStatus
+  pdfToWord,
+  pdfToExcel,
+  pdfToPowerpoint,
+  unlockPdf,
+  protectPdf,
+  wordToPdf,
+  excelToPdf,
+  powerpointToPdf,
+  getJobStatus,
+  downloadFile
 };

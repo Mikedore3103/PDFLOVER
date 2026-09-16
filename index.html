@@ -3,25 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>File Tools - Professional PDF Platform</title>
+  <title>PDF LOVERS - Professional PDF Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="header">
     <div class="container">
-      <h1 class="brand">File Tools</h1>
-      <p class="tagline">Professional PDF Platform</p>
+      <div class="brand-lockup">
+        <div class="brand-mark"><i data-lucide="file-stack"></i></div>
+        <div>
+          <h1 class="brand">PDF LOVERS</h1>
+          <p class="tagline">Make documents move</p>
+        </div>
+      </div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <div class="tools-menu">
+          <button id="toolsMenuButton" class="tools-menu-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="toolsMenuList">
+            Tools <i data-lucide="chevron-down" aria-hidden="true"></i>
+          </button>
+          <div id="toolsMenuList" class="tools-menu-list" role="menu" aria-label="Document tools"></div>
+        </div>
+        <a href="#uploadSection">Workspace</a>
+        <a href="blog.html">Blog</a>
+      </nav>
       <div class="auth-section">
         <div id="guestInfo" class="user-info">
-          <span>Using as Guest</span>
+          <span class="guest-label"><i data-lucide="sparkles"></i> Guest mode</span>
           <button id="loginBtn" class="auth-btn">Login</button>
           <button id="registerBtn" class="auth-btn primary">Sign Up</button>
         </div>
         <div id="userInfo" class="user-info hidden">
-          <span id="userEmail"></span>
+          <span id="userName" class="user-name"></span>
           <span id="userPlan" class="plan-badge"></span>
           <button id="upgradeBtn" class="auth-btn primary hidden">Upgrade</button>
           <button id="logoutBtn" class="auth-btn">Logout</button>
@@ -31,60 +48,136 @@
   </header>
 
   <main class="main">
+    <section id="accountDashboard" class="account-dashboard hidden" aria-labelledby="accountDashboardTitle">
+      <div class="container">
+        <div class="dashboard-heading">
+          <div>
+            <p class="section-kicker">Account overview</p>
+            <h2 id="accountDashboardTitle">Welcome</h2>
+          </div>
+          <span id="subscriptionStatus" class="subscription-status"></span>
+        </div>
+        <div class="subscription-panel">
+          <div class="subscription-summary">
+            <span class="summary-label">Current plan</span>
+            <strong id="dashboardPlan">FREE</strong>
+            <span id="dashboardUsage" class="usage-value"></span>
+          </div>
+          <div class="subscription-details">
+            <div><span>Started</span><strong id="subscriptionStarted">Not applicable</strong></div>
+            <div><span>Renews / expires</span><strong id="subscriptionExpires">Not applicable</strong></div>
+            <div><span>Last payment</span><strong id="lastPayment">Not available</strong></div>
+          </div>
+          <div id="subscriptionNotice" class="subscription-notice hidden"></div>
+          <div id="subscriptionActions" class="subscription-actions"></div>
+        </div>
+      </div>
+    </section>
+    <section id="adminDashboard" class="admin-dashboard hidden" aria-labelledby="adminDashboardTitle">
+      <div class="container">
+        <div class="dashboard-heading">
+          <div>
+            <p class="section-kicker">Administration</p>
+            <h2 id="adminDashboardTitle">Platform overview</h2>
+          </div>
+        </div>
+        <div class="admin-stats">
+          <div><span>Total users</span><strong id="adminTotalUsers">—</strong></div>
+          <div><span>Active subscriptions</span><strong id="adminActiveSubscriptions">—</strong></div>
+          <div><span>Successful payments</span><strong id="adminSuccessfulPayments">—</strong></div>
+        </div>
+        <div class="admin-recent">
+          <h3>Recent users</h3>
+          <ul id="adminRecentUsers"></ul>
+        </div>
+        <div class="admin-recent admin-users-panel">
+          <div class="admin-users-heading">
+            <h3>Manual cash access</h3>
+            <form id="adminUserSearchForm">
+              <input id="adminUserSearch" type="search" placeholder="Find account by email" aria-label="Find account by email">
+              <button type="submit">Search</button>
+            </form>
+          </div>
+          <p class="admin-help">Grant a 30-day Pro or Premium subscription after a verified cash payment. Every change is recorded.</p>
+          <div id="adminUsers" class="admin-users"></div>
+        </div>
+      </div>
+    </section>
     <!-- Tool Selection Grid -->
     <section id="toolSection" class="tool-section">
       <div class="container">
-        <h2 class="section-title">Choose Your Tool</h2>
+        <div class="section-heading" id="tools">
+          <div>
+            <p class="section-kicker">Your document desk</p>
+            <h2 class="section-title">What are you working on?</h2>
+          </div>
+          <p class="section-note">Fast, focused tools for the files that matter.</p>
+        </div>
         <div class="tool-grid">
           <div class="tool-card" data-tool="merge-pdf" data-name="Merge PDF" data-desc="Combine multiple files into a single PDF">
-            <div class="tool-icon">📄</div>
+            <div class="tool-icon"><i data-lucide="layers-2"></i></div>
             <h3>Merge PDFs</h3>
             <p>Combine multiple files into a single PDF</p>
           </div>
           <div class="tool-card" data-tool="split-pdf" data-name="Split PDF" data-desc="Extract pages or split one PDF into multiple documents">
-            <div class="tool-icon">✂️</div>
+            <div class="tool-icon"><i data-lucide="scissors"></i></div>
             <h3>Split PDF</h3>
             <p>Extract pages or split one PDF into multiple documents</p>
           </div>
           <div class="tool-card" data-tool="compress-pdf" data-name="Compress PDF" data-desc="Reduce file size while preserving quality">
-            <div class="tool-icon">🗜️</div>
+            <div class="tool-icon"><i data-lucide="minimize-2"></i></div>
             <h3>Compress PDF</h3>
             <p>Reduce file size while preserving quality</p>
           </div>
           <div class="tool-card" data-tool="pdf-to-jpg" data-name="PDF to JPG" data-desc="Export pages as high-quality JPG images">
-            <div class="tool-icon">🖼️</div>
+            <div class="tool-icon"><i data-lucide="image"></i></div>
             <h3>PDF to JPG</h3>
             <p>Export pages as high-quality JPG images</p>
           </div>
           <div class="tool-card" data-tool="jpg-to-pdf" data-name="JPG to PDF" data-desc="Turn images into clean, shareable PDF files">
-            <div class="tool-icon">📷</div>
+            <div class="tool-icon"><i data-lucide="image-plus"></i></div>
             <h3>JPG to PDF</h3>
             <p>Turn images into clean, shareable PDF files</p>
           </div>
-          <div class="tool-card" data-tool="pdf-to-word" data-name="PDF to Word" data-desc="Convert PDFs into editable DOCX documents">
-            <div class="tool-icon">📝</div>
+          <div class="tool-card" data-tool="pdf-to-word" data-name="PDF to Word" data-desc="Extract selectable PDF text into an editable DOCX document">
+            <div class="tool-icon"><i data-lucide="file-pen-line"></i></div>
             <h3>PDF to Word</h3>
-            <p>Convert PDFs into editable DOCX documents</p>
+            <p>Extract selectable PDF text into an editable DOCX document</p>
           </div>
-          <div class="tool-card" data-tool="pdf-to-excel" data-name="PDF to Excel" data-desc="Extract table data into editable spreadsheets">
-            <div class="tool-icon">📊</div>
+          <div class="tool-card" data-tool="pdf-to-excel" data-name="PDF to Excel" data-desc="Extract text-based table data into editable spreadsheet cells">
+            <div class="tool-icon"><i data-lucide="table-2"></i></div>
             <h3>PDF to Excel</h3>
-            <p>Extract table data into editable spreadsheets</p>
+            <p>Extract text-based table data into editable spreadsheet cells</p>
           </div>
-          <div class="tool-card" data-tool="pdf-to-powerpoint" data-name="PDF to PowerPoint" data-desc="Turn PDF pages into editable presentations">
-            <div class="tool-icon">📽️</div>
+          <div class="tool-card" data-tool="pdf-to-powerpoint" data-name="PDF to PowerPoint" data-desc="Extract selectable PDF text into editable presentation slides">
+            <div class="tool-icon"><i data-lucide="presentation"></i></div>
             <h3>PDF to PowerPoint</h3>
-            <p>Turn PDF pages into editable presentations</p>
+            <p>Extract selectable PDF text into editable presentation slides</p>
           </div>
           <div class="tool-card" data-tool="unlock-pdf" data-name="Unlock PDF" data-desc="Remove password protection when you have permission">
-            <div class="tool-icon">🔓</div>
+            <div class="tool-icon"><i data-lucide="lock-open"></i></div>
             <h3>Unlock PDF</h3>
             <p>Remove password protection when you have permission</p>
           </div>
-          <div class="tool-card" data-tool="protect-pdf" data-name="Protect PDF" data-desc="Encrypt files with strong password-based security">
-            <div class="tool-icon">🔒</div>
+          <div class="tool-card" data-tool="protect-pdf" data-name="Protect PDF" data-desc="Encrypt a PDF with a password">
+            <div class="tool-icon"><i data-lucide="lock-keyhole"></i></div>
             <h3>Protect PDF</h3>
-            <p>Encrypt files with strong password-based security</p>
+            <p>Encrypt a PDF with a password</p>
+          </div>
+          <div class="tool-card" data-tool="word-to-pdf" data-name="Word to PDF" data-desc="Convert a Word document to a shareable PDF">
+            <div class="tool-icon"><i data-lucide="file-text"></i></div>
+            <h3>Word to PDF</h3>
+            <p>Convert a Word document to a shareable PDF</p>
+          </div>
+          <div class="tool-card" data-tool="excel-to-pdf" data-name="Excel to PDF" data-desc="Convert an Excel workbook to a shareable PDF">
+            <div class="tool-icon"><i data-lucide="sheet"></i></div>
+            <h3>Excel to PDF</h3>
+            <p>Convert an Excel workbook to a shareable PDF</p>
+          </div>
+          <div class="tool-card" data-tool="powerpoint-to-pdf" data-name="PowerPoint to PDF" data-desc="Convert a PowerPoint presentation to a shareable PDF">
+            <div class="tool-icon"><i data-lucide="presentation"></i></div>
+            <h3>PowerPoint to PDF</h3>
+            <p>Convert a PowerPoint presentation to a shareable PDF</p>
           </div>
         </div>
       </div>
@@ -102,7 +195,7 @@
         <div id="uploadArea" class="upload-area">
           <input type="file" id="fileInput" multiple hidden />
           <div class="upload-content">
-            <div class="upload-icon">📁</div>
+            <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
             <h3>Drag & Drop your files here</h3>
             <p>or</p>
             <button id="selectBtn" class="select-btn">Select Files</button>
@@ -111,6 +204,11 @@
         </div>
 
         <div id="fileList" class="file-list hidden"></div>
+
+        <div id="passwordOptions" class="form-group hidden">
+          <label for="pdfPassword">PDF password</label>
+          <input type="password" id="pdfPassword" autocomplete="new-password">
+        </div>
 
         <div id="progressContainer" class="progress-container hidden">
           <div class="progress-bar">
@@ -124,19 +222,49 @@
           <p id="statusText">Processing your files...</p>
         </div>
 
-        <button id="processBtn" class="process-btn hidden">Process Files</button>
+        <button id="processBtn" class="process-btn hidden"><i data-lucide="arrow-up-right"></i> Process Files</button>
 
         <div id="downloadContainer" class="download-container hidden">
           <div class="download-card">
-            <div class="download-icon">✅</div>
+            <div class="download-icon"><i data-lucide="circle-check"></i></div>
             <h3>File Ready!</h3>
             <p>Your file has been processed successfully</p>
-            <a id="downloadBtn" class="download-btn" href="#" target="_blank">Download File</a>
+            <a id="downloadBtn" class="download-btn" href="#" download>Download File</a>
           </div>
         </div>
       </div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <section class="footer-brand" aria-labelledby="footerBrandName">
+        <div class="footer-brand-lockup">
+          <span class="footer-brand-mark"><i data-lucide="file-stack" aria-hidden="true"></i></span>
+          <strong id="footerBrandName">PDF LOVERS</strong>
+        </div>
+        <p>Fast, focused tools for the files that matter.</p>
+      </section>
+      <section class="footer-section" aria-labelledby="footerToolsTitle">
+        <h2 id="footerToolsTitle">Tools</h2>
+        <ul id="footerToolList" class="footer-link-list"></ul>
+      </section>
+      <section class="footer-section" aria-labelledby="footerNavigateTitle">
+        <h2 id="footerNavigateTitle">Navigate</h2>
+        <ul class="footer-link-list">
+          <li><button id="footerPricingBtn" class="footer-link" type="button">Pricing</button></li>
+          <li><button id="footerAuthBtn" class="footer-link" type="button">Log In</button></li>
+        </ul>
+      </section>
+      <section class="footer-section" aria-labelledby="footerSocialTitle">
+        <h2 id="footerSocialTitle">Follow Us</h2>
+        <div id="footerSocialLinks" class="footer-social-links"></div>
+      </section>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; <span id="footerYear"></span> PDF LOVERS . All rights reserved. Developed by Dore Creatives for PDF enthusiasts.</p>
+    </div>
+  </footer>
 
   <div id="uploadBackdrop" class="upload-backdrop"></div>
 
@@ -149,6 +277,11 @@
       </div>
       <div class="modal-body">
         <form id="authForm">
+          <div id="usernameGroup" class="form-group hidden">
+            <label for="username">Username</label>
+            <input type="text" id="username" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9_-]+" aria-describedby="usernameHint">
+            <p id="usernameHint" class="verify-hint">3–30 characters: letters, numbers, underscores, or hyphens.</p>
+          </div>
           <div class="form-group">
             <label for="email">Email</label>
             <input type="email" id="email" required>
@@ -175,11 +308,10 @@
             </div>
             <p class="verify-hint">We’ll email you a verification code before signup.</p>
           </div>
-          <div id="robotCheckGroup" class="form-group hidden">
-            <label class="robot-check">
-              <input type="checkbox" id="robotCheck">
-              <span>I'm not a robot</span>
-            </label>
+          <div id="humanVerificationGroup" class="form-group human-verification hidden">
+            <label>Human verification</label>
+            <div id="humanVerificationWidget" class="turnstile-widget"></div>
+            <p id="humanVerificationMessage" class="verify-hint">Complete the quick check to continue.</p>
           </div>
           <button type="submit" id="authSubmitBtn" class="auth-submit-btn">Login</button>
         </form>
@@ -193,21 +325,21 @@
 
   <!-- Upgrade Modal -->
   <div id="upgradeModal" class="modal hidden">
-    <div class="modal-content">
+    <div class="modal-content pricing-modal">
       <div class="modal-header">
-        <h2>Upgrade Required</h2>
+        <div>
+          <span class="eyebrow">Plans & access</span>
+          <h2>Choose your workspace</h2>
+        </div>
         <button id="closeUpgradeModal" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <div class="upgrade-content">
-          <div class="upgrade-icon">🚀</div>
-          <h3 id="upgradeTitle">Free Usage Limit Reached</h3>
-          <p id="upgradeMessage">Create a free account for higher limits or upgrade to Pro for unlimited access.</p>
-          <div class="upgrade-options">
-            <button id="upgradeLoginBtn" class="upgrade-btn">Login</button>
-            <button id="upgradeRegisterBtn" class="upgrade-btn primary">Create Free Account</button>
-            <button id="upgradeProBtn" class="upgrade-btn pro">Upgrade to Pro</button>
+          <p id="upgradeMessage">Pick the level that matches how you work. Your current plan is marked below.</p>
+          <div id="plansGrid" class="plans-grid" aria-live="polite">
+            <p class="plans-loading">Loading plans...</p>
           </div>
+          <p id="billingMessage" class="billing-message" role="status"></p>
         </div>
       </div>
     </div>

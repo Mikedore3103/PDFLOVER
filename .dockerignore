@@ -1,0 +1,10 @@
+.git
+.agents
+.codex
+node_modules
+file-tools-app/node_modules
+file-tools-app/uploads
+file-tools-app/conversions
+npm-debug.log
+.env
+.env.*

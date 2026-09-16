@@ -25,7 +25,12 @@ All required packages:
 - bullmq: Job queue
 - ioredis: Redis client
 - multer: File uploads
-- pdf-lib, pdf2pic, pdfkit: PDF processing
+- pdf-lib, pdfkit: PDF processing
+- docx, exceljs, pptxgenjs: PDF export formats
+
+PDF rendering and PDF to PowerPoint require Poppler. PDF compression requires
+Ghostscript. PDF unlock/protect require qpdf. The Render deployment
+configuration installs these native tools automatically.
 - node-cron: Task scheduling
 ```
 
@@ -166,7 +171,7 @@ http://localhost:3001
    - Drag & drop a PDF file
    - Click "Process Files"
    - File processes without login needed
-   - Try 4+ times to see "Limit Reached" message
+  - Try 11+ times to see "Limit Reached" message
 
 2. **Register User**
    - Click "Sign Up" button
@@ -533,7 +538,7 @@ netstat -ano | findstr :3001
 │  │ Routes & Middleware                              │  │
 │  │ - auth.js: /register, /login, /profile           │  │
 │  │ - tools.js: /upload, /job-status                 │  │
-│  │ - guestLimiter: IP-based tracking (3/day)        │  │
+│  │ - guestLimiter: IP-based tracking (10/day)       │  │
 │  │ - usageLimiter: JWT verification (20 or ∞/day)   │  │
 │  └──────────────────────────────────────────────────┘  │
 │                     ↓            ↓            ↓         │

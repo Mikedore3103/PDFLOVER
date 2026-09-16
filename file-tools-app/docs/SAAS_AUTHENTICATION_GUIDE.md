@@ -13,7 +13,7 @@ This document provides a complete guide to the SaaS authentication system implem
 #### 1. Guest User
 - **No login required**
 - **Daily Limits:**
-  - Max 3 conversions per day
+  - Max 10 conversions per day
   - Max file size: 10MB
 - **Storage:** No database record
 - **Tracking:** IP address-based with in-memory/Redis storage
@@ -68,7 +68,7 @@ userSchema.statics:
 ```javascript
 Key Features:
 - Track guest conversions by IP address
-- 3 conversions per 24 hours limit
+- 10 conversions per 24 hours limit
 - 10MB per file maximum
 - Auto-reset counters daily
 - In-memory storage (production: Redis)
@@ -298,7 +298,7 @@ PORT=3001
 
 ```javascript
 GUEST_LIMITS = {
-  maxConversions: 3,
+  maxConversions: 10,
   maxFileSize: 10 * 1024 * 1024, // 10MB
   resetInterval: 24 * 60 * 60 * 1000 // 24 hours
 }
@@ -544,7 +544,7 @@ file-tools-app/
 ## Success Metrics
 
 - ✓ Guests can upload without login
-- ✓ Guests limited to 3 conversions/day
+- ✓ Guests limited to 10 conversions/day
 - ✓ Registered users get 20 conversions/day
 - ✓ Pro users get unlimited conversions
 - ✓ Premium tools blocked for non-Pro users

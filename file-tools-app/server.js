@@ -4,10 +4,19 @@ const path = require('path');
 const fs = require('fs');
 const toolsRouter = require('./routes/tools');
 const authRouter = require('./routes/auth');
+const plansRouter = require('./routes/plans');
+const billingRouter = require('./routes/billing');
+const adminRouter = require('./routes/admin');
+const { initializePlans } = require('./services/planService');
 const { errorResponse } = require('./utils/responseHandler');
 const { startCleanupScheduler, stopCleanupScheduler } = require('./config/cleanupScheduler');
 
+if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
+  throw new Error('MONGODB_URI and JWT_SECRET must be configured.');
+}
+
 // Connect to MongoDB
+<<<<<<< HEAD
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/file-tools-app';
 
 async function connectToDatabase() {
@@ -23,6 +32,16 @@ async function connectToDatabase() {
     console.error('Set MONGODB_URI in Render to your MongoDB Atlas connection string for authentication to work.');
   }
 }
+=======
+const MONGODB_URI = process.env.MONGODB_URI;
+mongoose.connect(MONGODB_URI)
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    await initializePlans();
+    console.log('Subscription plans initialized');
+  })
+  .catch(err => console.error('MongoDB connection error:', err));
+>>>>>>> 28cf681062553fb00488b53f5fa64d9c11451f8b
 
 // Start the conversion worker
 // require('./workers/conversionWorker');
@@ -43,16 +62,35 @@ const conversionsDir = path.join(__dirname, 'conversions');
 });
 
 // Middleware
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer.toString('utf8');
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS headers for frontend
+// CORS headers for a separately hosted frontend. Requests without an Origin
+// header (server-to-server calls and same-origin navigation) need no CORS
+// headers. Set FRONTEND_ORIGIN to one or more comma-separated HTTPS origins
+// in Render, for example: https://your-site.github.io,https://yourdomain.com
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  const requestOrigin = req.headers.origin;
+  const allowedOrigins = (process.env.FRONTEND_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+  const normalizedOrigin = requestOrigin?.replace(/\/$/, '');
+  const isAllowedOrigin = normalizedOrigin && allowedOrigins.includes(normalizedOrigin);
+
+  if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', normalizedOrigin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  }
   if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
+    if (requestOrigin && !isAllowedOrigin) return res.sendStatus(403);
+    res.sendStatus(204);
   } else {
     next();
   }
@@ -60,8 +98,6 @@ app.use((req, res, next) => {
 
 // Serve frontend from repo root (index.html, style.css, script.js)
 app.use(express.static(path.join(__dirname, '..')));
-app.use('/uploads', express.static(uploadsDir));
-app.use('/conversions', express.static(conversionsDir));
 
 app.get('/api', (req, res) => {
   res.json({ message: 'File Tools API', version: '1.0.0' });
@@ -69,6 +105,9 @@ app.get('/api', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/plans', plansRouter);
+app.use('/api/billing', billingRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/tools', toolsRouter);
 
 app.use((err, req, res, next) => {

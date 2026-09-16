@@ -3,8 +3,10 @@ const upload = require('../config/multerConfig');
 const toolController = require('../controllers/toolController');
 const { usageLimiter } = require('../middleware/usageLimiter');
 const { guestLimiter } = require('../middleware/guestLimiter');
+const { rateLimit } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+router.use(rateLimit({ windowMs: 60 * 1000, max: 30 }));
 
 // Apply usage limiters to all tool routes
 // Order matters: usageLimiter (registered users) first, then guestLimiter (fallback)
@@ -19,8 +21,17 @@ router.post('/jpg-to-pdf', upload.array('files'), toolMiddleware, toolController
 router.post('/merge-pdf', upload.array('files'), toolMiddleware, toolController.mergePdf);
 router.post('/split-pdf', upload.array('files'), toolMiddleware, toolController.splitPdf);
 router.post('/compress-pdf', upload.array('files'), toolMiddleware, toolController.compressPdf);
+router.post('/pdf-to-word', upload.array('files'), toolMiddleware, toolController.pdfToWord);
+router.post('/pdf-to-excel', upload.array('files'), toolMiddleware, toolController.pdfToExcel);
+router.post('/pdf-to-powerpoint', upload.array('files'), toolMiddleware, toolController.pdfToPowerpoint);
+router.post('/unlock-pdf', upload.array('files'), toolMiddleware, toolController.unlockPdf);
+router.post('/protect-pdf', upload.array('files'), toolMiddleware, toolController.protectPdf);
+router.post('/word-to-pdf', upload.array('files'), toolMiddleware, toolController.wordToPdf);
+router.post('/excel-to-pdf', upload.array('files'), toolMiddleware, toolController.excelToPdf);
+router.post('/powerpoint-to-pdf', upload.array('files'), toolMiddleware, toolController.powerpointToPdf);
 
 // Job status endpoint (no auth required for checking status)
-// router.get('/job-status/:id', toolController.getJobStatus);
+router.get('/job-status/:id', toolController.getJobStatus);
+router.get('/download/:filename', toolController.downloadFile);
 
 module.exports = router;

@@ -3,7 +3,7 @@
  *
  * Tracks guest user conversions using IP address as identifier.
  * Limits: 3 conversions per day, 10MB max file size.
- * Resets daily at midnight.
+ * Resets 24 hours after the first conversion in each usage window.
  */
 
 const { errorResponse } = require('../utils/responseHandler');
@@ -20,6 +20,7 @@ const GUEST_LIMITS = {
   maxFileSize: 10 * 1024 * 1024, // 10MB
   resetInterval: RESET_INTERVAL
 };
+const PREMIUM_TOOLS = new Set(['compress-pdf', 'ocr-pdf', 'batch-convert']);
 
 /**
  * Get or create guest usage record for an IP address
@@ -83,11 +84,22 @@ function validateGuestFileSize(files) {
  */
 function guestLimiter(req, res, next) {
   try {
+    // usageLimiter already authenticated and charged registered users. Do not
+    // apply guest limits or guest-only premium restrictions a second time.
+    if (req.userType === 'registered') {
+      return next();
+    }
+
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const toolName = req.body?.tool || req.params?.tool || req.path.replace(/^\//, '');
+
+    if (PREMIUM_TOOLS.has(toolName)) {
+      return errorResponse(res, 'This tool requires a Pro plan.', 403);
+    }
 
     // Check conversion limit
     if (isGuestLimitExceeded(clientIP)) {
-      return errorResponse(res, 'Free usage limit reached. Create a free account for higher limits.', 429);
+      return errorResponse(res, 'You have reached your 3 free conversions for today. Upgrade to Pro for higher daily limits.', 429);
     }
 
     // Validate file sizes
