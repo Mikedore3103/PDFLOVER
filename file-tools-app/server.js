@@ -61,18 +61,22 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS headers for a separately hosted frontend. Requests without an Origin
-// header (server-to-server calls and same-origin navigation) need no CORS
-// headers. Set FRONTEND_ORIGIN to one or more comma-separated HTTPS origins
-// in Render, for example: https://your-site.github.io,https://yourdomain.com
+// CORS headers for a separately hosted frontend. Keep the production domain
+// here as a safe default, and allow FRONTEND_ORIGIN to add preview or future
+// frontend origins as a comma-separated list.
+const defaultFrontendOrigins = [
+  'https://pdflovers.name.ng',
+  'https://www.pdflovers.name.ng'
+];
+
 app.use((req, res, next) => {
   const requestOrigin = req.headers.origin;
-  const allowedOrigins = (process.env.FRONTEND_ORIGIN || '')
-    .split(',')
+  const configuredOrigins = (process.env.FRONTEND_ORIGIN || '').split(',');
+  const allowedOrigins = new Set([...defaultFrontendOrigins, ...configuredOrigins]
     .map(origin => origin.trim().replace(/\/$/, ''))
-    .filter(Boolean);
+    .filter(Boolean));
   const normalizedOrigin = requestOrigin?.replace(/\/$/, '');
-  const isAllowedOrigin = normalizedOrigin && allowedOrigins.includes(normalizedOrigin);
+  const isAllowedOrigin = normalizedOrigin && allowedOrigins.has(normalizedOrigin);
 
   if (isAllowedOrigin) {
     res.header('Access-Control-Allow-Origin', normalizedOrigin);
