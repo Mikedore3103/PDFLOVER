@@ -1346,6 +1346,9 @@ h1, h2, h3, .brand {
   gap: 0.75rem;
 }
 
+.header-logo-link { flex: 0 1 240px; min-width: 150px; text-decoration: none; }
+.header-logo { display: block; width: min(240px, 100%); max-height: 58px; object-fit: contain; object-position: left center; }
+
 .brand-mark {
   width: 42px;
   height: 42px;
@@ -1497,6 +1500,9 @@ h1, h2, h3, .brand {
     flex: 1 1 9rem;
   }
 
+  .header-logo-link { flex-basis: 10rem; }
+  .header-logo { width: min(210px, 100%); max-height: 50px; }
+
   .auth-section {
     margin-left: 0;
   }
@@ -1575,6 +1581,7 @@ h1, h2, h3, .brand {
 .site-footer { margin-top: auto; padding: 2rem 0 0; background: var(--brand); color: #fff; }
 .footer-grid { display: grid; grid-template-columns: minmax(13rem, 1.6fr) minmax(15rem, 1.45fr) repeat(2, minmax(8rem, 1fr)); gap: 1.5rem; }
 .footer-brand-lockup { display: flex; align-items: center; gap: 0.65rem; font-family: "Space Grotesk", sans-serif; font-size: 1.15rem; }
+.footer-logo { display: block; width: min(190px, 100%); max-height: 64px; object-fit: contain; object-position: left center; filter: brightness(0) invert(1); }
 .footer-brand-mark { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(255,255,255,0.45); border-radius: 9px; background: rgba(255,255,255,0.14); }
 .footer-brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: contain; }
 .footer-brand p { max-width: 18rem; margin: 0.85rem 0 0; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
@@ -1595,6 +1602,7 @@ h1, h2, h3, .brand {
 .social-mark.linkedin span { font-size: 1.15rem; }
 .footer-bottom { margin-top: 1.4rem; padding: 0.85rem 1rem; border-top: 1px solid rgba(255,255,255,0.28); }
 .footer-bottom p { margin: 0; color: rgba(255,255,255,0.78); font-size: 0.84rem; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 
 @media (max-width: 768px) {
   .tools-menu-list { left: 0; }

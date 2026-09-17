@@ -30,13 +30,9 @@
 <body>
   <header class="header">
     <div class="container">
-      <div class="brand-lockup">
-        <div class="brand-mark"><img src="assets/logo.svg" alt="" /></div>
-        <div>
-          <h1 class="brand">PDF LOVERS</h1>
-          <p class="tagline">Make documents move</p>
-        </div>
-      </div>
+      <a class="brand-lockup header-logo-link" href="index.html" aria-label="PDF LOVERS home">
+        <img class="header-logo" src="assets/logo-header.svg" alt="PDF LOVERS — Make documents move" />
+      </a>
       <nav class="main-nav" aria-label="Main navigation">
         <div class="tools-menu">
           <button id="toolsMenuButton" class="tools-menu-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="toolsMenuList">
@@ -256,8 +252,8 @@
     <div class="container footer-grid">
       <section class="footer-brand" aria-labelledby="footerBrandName">
         <div class="footer-brand-lockup">
-          <span class="footer-brand-mark"><img src="assets/logo.svg" alt="" /></span>
-          <strong id="footerBrandName">PDF LOVERS</strong>
+          <img class="footer-logo" src="assets/logo-footer.svg" alt="PDF LOVERS" />
+          <strong id="footerBrandName" class="visually-hidden">PDF LOVERS</strong>
         </div>
         <p>Fast, focused tools for the files that matter.</p>
         <button id="installAppBtn" class="footer-install-button hidden" type="button">
