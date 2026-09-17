@@ -1356,7 +1356,7 @@ h1, h2, h3, .brand {
   background: rgba(255,255,255,0.14);
 }
 
-.brand-mark svg { width: 22px; height: 22px; }
+.brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: contain; }
 .brand { font-size: 1.35rem; line-height: 1; }
 .tagline { margin: 0.25rem 0 0; font-size: 0.78rem; letter-spacing: 0.03em; }
 
@@ -1576,7 +1576,7 @@ h1, h2, h3, .brand {
 .footer-grid { display: grid; grid-template-columns: minmax(13rem, 1.6fr) minmax(15rem, 1.45fr) repeat(2, minmax(8rem, 1fr)); gap: 1.5rem; }
 .footer-brand-lockup { display: flex; align-items: center; gap: 0.65rem; font-family: "Space Grotesk", sans-serif; font-size: 1.15rem; }
 .footer-brand-mark { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(255,255,255,0.45); border-radius: 9px; background: rgba(255,255,255,0.14); }
-.footer-brand-mark svg { width: 19px; }
+.footer-brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: contain; }
 .footer-brand p { max-width: 18rem; margin: 0.85rem 0 0; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
 .footer-install-button { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem; padding: 0.65rem 0.9rem; border: 1px solid rgba(255,255,255,0.7); border-radius: 8px; background: #fff; color: var(--brand-dark); font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
 .footer-install-button svg { width: 17px; height: 17px; }
