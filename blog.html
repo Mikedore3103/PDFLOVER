@@ -11,7 +11,15 @@
   <meta property="og:description" content="Practical document workflows, PDF tips, and file-management guidance from PDF LOVERS.">
   <meta property="og:url" content="https://pdflovers.name.ng/blog.html">
   <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#d9272e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PDF LOVERS">
   <title>Blogs | PDF LOVERS</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/app-icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -31,6 +39,7 @@
         <a href="index.html#uploadSection">Workspace</a>
         <a class="nav-current" href="blog.html" aria-current="page">Blog</a>
       </nav>
+      <button id="installAppBtn" class="auth-btn pwa-install hidden" type="button">Install App</button>
       <a class="blog-login-link" href="index.html">Log in</a>
     </div>
   </header>
@@ -59,5 +68,6 @@
     <div class="container footer-bottom"><p>&copy; <span id="blogYear"></span> PDF LOVERS. All rights reserved.</p></div>
   </footer>
   <script src="blog.js"></script>
+  <script src="pwa.js"></script>
 </body>
 </html>

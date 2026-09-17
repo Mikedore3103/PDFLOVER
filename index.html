@@ -11,7 +11,15 @@
   <meta property="og:description" content="Convert, merge, split, compress, protect, and manage PDF documents online." />
   <meta property="og:url" content="https://pdflovers.name.ng/" />
   <meta name="twitter:card" content="summary" />
+  <meta name="theme-color" content="#d9272e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="PDF LOVERS" />
   <title>PDF LOVERS - Professional PDF Platform</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/app-icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -39,6 +47,7 @@
         <a href="#uploadSection">Workspace</a>
         <a href="blog.html">Blog</a>
       </nav>
+      <button id="installAppBtn" class="auth-btn pwa-install hidden" type="button">Install App</button>
       <div class="auth-section">
         <div id="guestInfo" class="user-info">
           <span class="guest-label"><i data-lucide="sparkles"></i> Guest mode</span>
@@ -369,5 +378,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="script.js"></script>
+  <script src="pwa.js"></script>
 </body>
 </html>

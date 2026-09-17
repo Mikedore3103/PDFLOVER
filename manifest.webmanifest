@@ -1,0 +1,38 @@
+{
+  "id": "/",
+  "name": "PDF LOVERS",
+  "short_name": "PDF LOVERS",
+  "description": "Convert, merge, split, compress, and manage PDF documents.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffafa",
+  "theme_color": "#d9272e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/assets/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open PDF tools",
+      "short_name": "PDF tools",
+      "url": "/#tools"
+    },
+    {
+      "name": "Open workspace",
+      "short_name": "Workspace",
+      "url": "/#uploadSection"
+    }
+  ]
+}

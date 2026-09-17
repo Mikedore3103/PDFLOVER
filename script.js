@@ -3,6 +3,7 @@
 // continues to call the Render API, which must list that site in
 // FRONTEND_ORIGIN on Render.
 const RENDER_API_URL = 'https://pdflover-1.onrender.com';
+const IS_STANDALONE_APP = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 const isLocalBackend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const isRenderBackend = window.location.hostname.endsWith('.onrender.com');
 // Any Render-hosted copy (including the Docker migration service) serves both
@@ -218,7 +219,7 @@ function updateAuthUI() {
     userPlan.textContent = currentUser.plan.toUpperCase();
     userPlan.classList.toggle('pro', currentUser.plan === 'pro');
     userPlan.classList.toggle('premium', currentUser.plan === 'premium');
-    if (currentUser.plan === 'premium') {
+    if (currentUser.plan === 'premium' || IS_STANDALONE_APP) {
       hideElement(upgradeBtn);
     } else {
       showElement(upgradeBtn);
@@ -470,7 +471,9 @@ function renderSubscriptionDashboard() {
   }
 
   const actions = [];
-  if (planCode === 'free') {
+  if (IS_STANDALONE_APP) {
+    actions.push('<button class="dashboard-action current" disabled>Current Plan</button>');
+  } else if (planCode === 'free') {
     actions.push('<button class="dashboard-action" data-dashboard-plan="pro">Upgrade to Pro</button>');
     actions.push('<button class="dashboard-action secondary" data-dashboard-plan="premium">Upgrade to Premium</button>');
   } else if (planCode === 'pro') {
@@ -579,6 +582,11 @@ function closeAuthModal() {
 }
 
 async function openUpgradeModal(title = 'Plans & access', message = 'Pick the level that matches how you work. Your current plan is marked below.') {
+  if (IS_STANDALONE_APP) {
+    window.alert('Plan purchases are currently available on the PDF LOVERS website only.');
+    return;
+  }
+
   if (!currentUser || !getAuthToken()) {
     openAuthModal(true);
     return;
@@ -636,6 +644,8 @@ async function loadPlans() {
 }
 
 async function beginCheckout(planCode) {
+  if (IS_STANDALONE_APP) return;
+
   if (planCode === 'free') {
     closeUpgradeModal();
     return;
@@ -1311,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadUserProfile();
   markPremiumTools();
 
-  setTimeout(() => {
+  if (!IS_STANDALONE_APP) setTimeout(() => {
     if (currentUser && ['pro', 'premium'].includes(currentUser.plan)) {
       return;
     }

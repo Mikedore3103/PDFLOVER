@@ -1370,6 +1370,12 @@ h1, h2, h3, .brand {
 .guest-label svg { width: 14px; height: 14px; }
 .auth-btn { border-radius: 7px; padding: 0.55rem 0.85rem; font-weight: 600; }
 .auth-btn.primary { color: var(--brand-dark); }
+.pwa-install { border-color: rgba(255,255,255,0.7); background: transparent; color: #fff; white-space: nowrap; }
+.pwa-install:hover { background: rgba(255,255,255,0.14); }
+.standalone-app #footerPricingBtn,
+.standalone-app #upgradeBtn,
+.standalone-app #upgradeModal,
+.standalone-app #upgradeNudgeModal { display: none !important; }
 
 .tool-section { padding: 2.2rem 0 5rem; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 1.75rem; }
