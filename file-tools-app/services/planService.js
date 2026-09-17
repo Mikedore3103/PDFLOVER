@@ -14,21 +14,21 @@ async function initializePlans() {
       code: 'free',
       name: 'Free',
       price: 0,
-      dailyConversionLimit: 3,
+      monthlyConversionLimit: 10,
       active: true
     },
     {
       code: 'pro',
       name: 'Pro',
       price: configuredPrice('PRO_PLAN_PRICE', 3000),
-      dailyConversionLimit: 100,
+      monthlyConversionLimit: 100,
       active: true
     },
     {
       code: 'premium',
       name: 'Premium',
       price: configuredPrice('PREMIUM_PLAN_PRICE', 10000),
-      dailyConversionLimit: -1,
+      monthlyConversionLimit: 300,
       active: true
     }
   ];
@@ -39,7 +39,7 @@ async function initializePlans() {
       { code: definition.code },
       // Keep plan definitions in code and MongoDB in sync. $setOnInsert left
       // already-created plans priced at 0, which made checkout unavailable.
-      { $set: { ...definition, currency } },
+      { $set: { ...definition, currency }, $unset: { dailyConversionLimit: '' } },
       { upsert: true, new: true }
     );
   }

@@ -219,7 +219,7 @@ async function login(req, res) {
         email: user.email,
         role: user.role,
         plan: user.plan,
-        dailyUsageCount: user.dailyUsageCount
+        monthlyUsageCount: user.monthlyUsageCount
       }
     });
   } catch (error) {
@@ -266,8 +266,8 @@ async function getProfile(req, res) {
         email: user.email,
         role: user.role,
         plan: effectivePlan?.code || 'free',
-        dailyUsageCount: user.dailyUsageCount,
-        lastUsageReset: user.lastUsageReset,
+        monthlyUsageCount: user.monthlyUsageCount,
+        monthlyUsageResetAt: user.monthlyUsageResetAt,
         currentPlan: user.currentPlan,
         subscriptionStatus: user.subscriptionStatus,
         subscriptionStartedAt: user.subscriptionStartedAt,
@@ -278,7 +278,7 @@ async function getProfile(req, res) {
           name: effectivePlan.name,
           price: effectivePlan.price,
           currency: effectivePlan.currency,
-          dailyConversionLimit: effectivePlan.dailyConversionLimit
+          monthlyConversionLimit: effectivePlan.monthlyConversionLimit
         } : null,
         subscription: {
           status: effectiveStatus,

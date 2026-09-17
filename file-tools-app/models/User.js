@@ -2,7 +2,7 @@
  * User Model
  *
  * Represents registered users in the system.
- * Supports free and pro plans with usage tracking.
+ * Supports free, Pro, and Premium plans with monthly usage tracking.
  */
 
 const mongoose = require('mongoose');
@@ -72,11 +72,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  dailyUsageCount: {
+  monthlyUsageCount: {
     type: Number,
     default: 0
   },
-  lastUsageReset: {
+  monthlyUsageResetAt: {
     type: Date,
     default: Date.now
   },
@@ -114,10 +114,10 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method to reset daily usage
-userSchema.methods.resetDailyUsage = function() {
-  this.dailyUsageCount = 0;
-  this.lastUsageReset = Date.now();
+// Instance method to reset the current calendar-month usage.
+userSchema.methods.resetMonthlyUsage = function() {
+  this.monthlyUsageCount = 0;
+  this.monthlyUsageResetAt = Date.now();
   return this.save();
 };
 

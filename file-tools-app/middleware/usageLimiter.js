@@ -1,8 +1,8 @@
 /**
  * Usage Limiter Middleware for Registered Users
  *
- * Handles limits for free and pro registered users.
- * Tracks usage in database and enforces plan-based limits.
+ * Handles monthly limits for registered Free, Pro, and Premium users.
+ * Tracks usage in the database and enforces plan-based limits.
  */
 
 const jwt = require('jsonwebtoken');
@@ -20,7 +20,7 @@ const PLAN_FILE_LIMITS = {
   pro: 500 * 1024 * 1024,
   premium: 500 * 1024 * 1024
 };
-const RESET_INTERVAL = 24 * 60 * 60 * 1000;
+const MONTHLY_USAGE_INTERVAL = 30 * 24 * 60 * 60 * 1000;
 
 // Premium tools that require Pro plan
 const PREMIUM_TOOLS = new Set([
@@ -30,46 +30,39 @@ const PREMIUM_TOOLS = new Set([
 ]);
 
 /**
- * Reset daily usage counter if needed
+ * Reserve one conversion in the user's current 30-day usage period.
  * @param {Object} user - User document from database
  * @returns {Object} Updated user object
  */
-function getUtcDayStart(date = new Date()) {
-  const dayStart = new Date(date);
-  dayStart.setUTCHours(0, 0, 0, 0);
-  return dayStart;
-}
-
 async function reserveConversion(user, plan) {
-  const dayStart = getUtcDayStart();
-  const limit = plan.dailyConversionLimit;
-  const limitFilter = limit === -1
-    ? {}
-    : {
-        $or: [
-          { lastUsageReset: { $lt: dayStart } },
-          { lastUsageReset: { $exists: false } },
-          { lastUsageReset: null },
-          { dailyUsageCount: { $lt: limit } }
-        ]
-      };
+  const now = new Date();
+  const expiredPeriodCutoff = new Date(now.getTime() - MONTHLY_USAGE_INTERVAL);
+  const limit = plan.monthlyConversionLimit;
+  const limitFilter = {
+    $or: [
+      { monthlyUsageResetAt: { $lte: expiredPeriodCutoff } },
+      { monthlyUsageResetAt: { $exists: false } },
+      { monthlyUsageResetAt: null },
+      { monthlyUsageCount: { $lt: limit } }
+    ]
+  };
 
   const updatedUser = await User.findOneAndUpdate(
     { _id: user._id, ...limitFilter },
     [{
       $set: {
-        dailyUsageCount: {
+        monthlyUsageCount: {
           $cond: [
-            { $lt: [{ $ifNull: ['$lastUsageReset', new Date(0)] }, dayStart] },
+            { $lte: [{ $ifNull: ['$monthlyUsageResetAt', new Date(0)] }, expiredPeriodCutoff] },
             1,
-            { $add: [{ $ifNull: ['$dailyUsageCount', 0] }, 1] }
+            { $add: [{ $ifNull: ['$monthlyUsageCount', 0] }, 1] }
           ]
         },
-        lastUsageReset: {
+        monthlyUsageResetAt: {
           $cond: [
-            { $lt: [{ $ifNull: ['$lastUsageReset', new Date(0)] }, dayStart] },
-            new Date(),
-            '$lastUsageReset'
+            { $lte: [{ $ifNull: ['$monthlyUsageResetAt', new Date(0)] }, expiredPeriodCutoff] },
+            now,
+            '$monthlyUsageResetAt'
           ]
         }
       }
@@ -81,15 +74,14 @@ async function reserveConversion(user, plan) {
 
   return {
     user: updatedUser,
-    dayStart,
     release: async () => {
       await User.updateOne(
         {
           _id: updatedUser._id,
-          lastUsageReset: { $gte: dayStart, $lt: new Date(dayStart.getTime() + RESET_INTERVAL) },
-          dailyUsageCount: { $gt: 0 }
+          monthlyUsageResetAt: updatedUser.monthlyUsageResetAt,
+          monthlyUsageCount: { $gt: 0 }
         },
-        { $inc: { dailyUsageCount: -1 } }
+        { $inc: { monthlyUsageCount: -1 } }
       );
     }
   };
@@ -195,11 +187,13 @@ async function usageLimiter(req, res, next) {
     reservation = await reserveConversion(user, effectivePlan);
     if (!reservation) {
       const message = effectivePlan.code === 'free'
-        ? "You've reached your 3 free conversions for today. Upgrade to Pro for up to 100 conversions per day or Premium for unlimited conversions."
-        : "You've reached your 100 daily conversions. Upgrade to Premium for unlimited conversions.";
+        ? "You've reached your 10 free conversions for this month. Upgrade to Pro for 100 conversions per month or Premium for 300 conversions per month."
+        : effectivePlan.code === 'pro'
+          ? "You've reached your 100 monthly conversions. Upgrade to Premium for 300 conversions per month."
+          : "You've reached your 300 monthly conversions.";
       return errorResponse(res, message, 429, {
         plan: effectivePlan.code,
-        dailyConversionLimit: effectivePlan.dailyConversionLimit,
+        monthlyConversionLimit: effectivePlan.monthlyConversionLimit,
         upgradeOptions: effectivePlan.code === 'free' ? ['pro', 'premium'] : ['premium']
       });
     }
@@ -213,9 +207,9 @@ async function usageLimiter(req, res, next) {
     req.user = reservation.user;
     req.userType = 'registered';
     req.userLimits = {
-      maxConversions: effectivePlan.dailyConversionLimit,
+      maxConversions: effectivePlan.monthlyConversionLimit,
       maxFileSize: PLAN_FILE_LIMITS[effectivePlan.code] || PLAN_FILE_LIMITS.free,
-      resetInterval: RESET_INTERVAL
+      resetAt: new Date(reservation.user.monthlyUsageResetAt.getTime() + MONTHLY_USAGE_INTERVAL)
     };
     req.plan = effectivePlan;
     req.releaseConversion = reservation.release;

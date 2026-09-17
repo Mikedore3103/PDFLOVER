@@ -48,7 +48,7 @@ async function listUsers(req, res) {
     const [total, users] = await Promise.all([
       User.countDocuments(filter),
       User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)
-        .select('_id email role plan currentPlan subscriptionStatus subscriptionExpiresAt dailyUsageCount createdAt').lean()
+        .select('_id email role plan currentPlan subscriptionStatus subscriptionExpiresAt monthlyUsageCount createdAt').lean()
     ]);
     return successResponse(res, { users, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (error) {

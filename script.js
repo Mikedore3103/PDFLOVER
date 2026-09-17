@@ -452,9 +452,7 @@ function renderSubscriptionDashboard() {
   const planCode = currentUser.plan || 'free';
   showElement(accountDashboard);
   dashboardPlan.textContent = planCode.toUpperCase();
-  dashboardUsage.textContent = plan?.dailyConversionLimit === -1
-    ? 'Unlimited conversions'
-    : `${currentUser.dailyUsageCount || 0} / ${plan?.dailyConversionLimit ?? 3} conversions used today`;
+  dashboardUsage.textContent = `${currentUser.monthlyUsageCount || 0} / ${plan?.monthlyConversionLimit ?? 10} conversions used in your current 30-day period`;
   subscriptionStatus.textContent = String(subscription.status || 'inactive').replace('_', ' ');
   subscriptionStatus.className = `subscription-status status-${subscription.status || 'inactive'}`;
   subscriptionStarted.textContent = formatDate(subscription.startedAt);
@@ -608,9 +606,7 @@ function formatPlanPrice(plan) {
 }
 
 function planLimitText(plan) {
-  return plan.dailyConversionLimit === -1
-    ? 'Unlimited PDF conversions per day'
-    : `Up to ${plan.dailyConversionLimit} PDF conversions per day`;
+  return `Up to ${plan.monthlyConversionLimit} PDF conversions per month`;
 }
 
 async function loadPlans() {

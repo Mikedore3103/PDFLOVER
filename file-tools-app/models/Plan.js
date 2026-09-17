@@ -26,7 +26,7 @@ const planSchema = new mongoose.Schema({
     trim: true,
     default: 'NGN'
   },
-  dailyConversionLimit: {
+  monthlyConversionLimit: {
     type: Number,
     required: true,
     min: -1
