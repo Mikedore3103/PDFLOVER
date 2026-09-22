@@ -92,9 +92,6 @@ app.use((req, res, next) => {
   }
 });
 
-// Serve frontend from repo root (index.html, style.css, script.js)
-app.use(express.static(path.join(__dirname, '..')));
-
 app.get('/api', (req, res) => {
   res.json({ message: 'File Tools API', version: '1.0.0' });
 });
@@ -105,6 +102,10 @@ app.use('/api/plans', plansRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/tools', toolsRouter);
+
+// The frontend is hosted separately on GitHub Pages. Do not expose the
+// repository, backend source, deployment files, or documentation from Render.
+app.use((req, res) => errorResponse(res, 'Not found.', 404));
 
 app.use((err, req, res, next) => {
   console.error(err);
