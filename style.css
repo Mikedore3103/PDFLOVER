@@ -1378,6 +1378,56 @@ h1, h2, h3, .brand {
 .standalone-app #upgradeModal,
 .standalone-app #upgradeNudgeModal { display: none !important; }
 
+@supports (padding: max(0px)) {
+  .standalone-app body { padding-bottom: env(safe-area-inset-bottom); }
+  .standalone-app .header { padding-top: max(1.1rem, env(safe-area-inset-top)); }
+}
+
+.pwa-install-dialog {
+  width: min(92vw, 430px);
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 28px 80px rgba(55, 32, 32, 0.3);
+}
+
+.pwa-install-dialog::backdrop { background: rgba(35, 20, 20, 0.62); backdrop-filter: blur(4px); }
+.pwa-install-card { position: relative; padding: 2rem; text-align: center; }
+.pwa-install-card img { display: block; margin: 0 auto 0.9rem; border-radius: 16px; }
+.pwa-dialog-kicker { margin: 0; color: var(--brand); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; }
+.pwa-install-card h2 { margin: 0.35rem 0 0.65rem; font-size: 1.45rem; }
+.pwa-install-card > p:not(.pwa-dialog-kicker) { margin: 0 auto 1rem; color: var(--muted); line-height: 1.55; }
+.pwa-install-card ol { margin: 1rem 0 1.4rem; padding-left: 1.4rem; color: var(--muted); text-align: left; }
+.pwa-install-card li { margin: 0.65rem 0; padding-left: 0.3rem; line-height: 1.45; }
+.pwa-dialog-close { position: absolute; top: 0.75rem; right: 0.85rem; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--brand-soft); color: var(--brand-dark); font-size: 1.5rem; cursor: pointer; }
+.pwa-install-confirm { width: 100%; padding: 0.85rem 1rem; border: 0; border-radius: 9px; background: var(--brand); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.pwa-install-later { margin-top: 0.75rem; padding: 0.55rem 1rem; border: 0; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+
+.pwa-toast {
+  position: fixed;
+  z-index: 3000;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: min(calc(100% - 2rem), 560px);
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #2b1c1d;
+  color: #fff;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.pwa-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.pwa-toast span { flex: 1; line-height: 1.4; }
+.pwa-toast button { padding: 0.5rem 0.75rem; border: 0; border-radius: 7px; background: #fff; color: var(--brand-dark); font: inherit; font-weight: 700; cursor: pointer; }
+
 .tool-section { padding: 2.2rem 0 5rem; }
 .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 1.75rem; }
 .section-title { margin: 0.25rem 0 0; text-align: left; font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.05; }

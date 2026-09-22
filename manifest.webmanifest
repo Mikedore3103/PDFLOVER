@@ -3,30 +3,51 @@
   "name": "PDF LOVERS",
   "short_name": "PDF LOVERS",
   "description": "Convert, merge, split, compress, and manage PDF documents.",
-  "start_url": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone"],
   "background_color": "#fffafa",
   "theme_color": "#d9272e",
   "orientation": "any",
+  "categories": ["productivity", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/assets/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/assets/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Open PDF tools",
       "short_name": "PDF tools",
-      "url": "/#tools"
+      "description": "Choose a PDF or document conversion tool.",
+      "url": "/#tools",
+      "icons": [{ "src": "/assets/app-icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Open workspace",
       "short_name": "Workspace",
-      "url": "/#uploadSection"
+      "description": "Open the PDF LOVERS file workspace.",
+      "url": "/#uploadSection",
+      "icons": [{ "src": "/assets/app-icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

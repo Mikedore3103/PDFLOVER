@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-lovers-app-v5';
+const CACHE_NAME = 'pdf-lovers-app-v6';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -6,6 +6,8 @@ const APP_SHELL = [
   '/script.js',
   '/pwa.js',
   '/manifest.webmanifest',
+  '/assets/app-icon-192.png',
+  '/assets/app-icon-512.png',
   '/assets/logo.svg',
   '/assets/logo-header.svg',
   '/assets/logo-footer.svg',
@@ -16,7 +18,10 @@ const APP_SHELL = [
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+});
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
