@@ -1347,7 +1347,7 @@ h1, h2, h3, .brand {
 }
 
 .header-logo-link { flex: 0 1 240px; min-width: 150px; text-decoration: none; }
-.header-logo { display: block; width: min(240px, 100%); max-height: 58px; object-fit: contain; object-position: left center; }
+.header-logo { display: block; width: min(280px, 100%); max-height: 88px; object-fit: contain; object-position: left center; }
 
 .brand-mark {
   width: 42px;

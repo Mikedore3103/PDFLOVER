@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-lovers-app-v6';
+const CACHE_NAME = 'pdf-lovers-app-v7';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -6,9 +6,7 @@ const APP_SHELL = [
   '/script.js',
   '/pwa.js',
   '/manifest.webmanifest',
-  '/assets/app-icon-192.png',
-  '/assets/app-icon-512.png',
-  '/assets/logo.svg',
+  '/assets/PFFLOVERS%20LOGO%20icon.png',
   '/assets/logo-header.svg',
   '/assets/logo-footer.svg',
   '/blog.html',

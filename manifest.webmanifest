@@ -16,20 +16,14 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/assets/app-icon-192.png",
-      "sizes": "192x192",
+      "src": "/assets/PFFLOVERS%20LOGO%20icon.png",
+      "sizes": "1254x1254",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/app-icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/assets/app-icon-512.png",
-      "sizes": "512x512",
+      "src": "/assets/PFFLOVERS%20LOGO%20icon.png",
+      "sizes": "1254x1254",
       "type": "image/png",
       "purpose": "maskable"
     }
@@ -40,14 +34,14 @@
       "short_name": "PDF tools",
       "description": "Choose a PDF or document conversion tool.",
       "url": "/#tools",
-      "icons": [{ "src": "/assets/app-icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/assets/PFFLOVERS%20LOGO%20icon.png", "sizes": "1254x1254", "type": "image/png" }]
     },
     {
       "name": "Open workspace",
       "short_name": "Workspace",
       "description": "Open the PDF LOVERS file workspace.",
       "url": "/#uploadSection",
-      "icons": [{ "src": "/assets/app-icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/assets/PFFLOVERS%20LOGO%20icon.png", "sizes": "1254x1254", "type": "image/png" }]
     }
   ]
 }
